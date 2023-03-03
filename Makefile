@@ -28,11 +28,11 @@ define QEMU_ARGS
 endef
 $(OUT_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 	@echo [CC] $<
-	$(CC) -c -o $@ $< $(CFLAGS)
+	@$(CC) -c -o $@ $< $(CFLAGS)
 
 $(OUT_DIR)/%.o: $(ASM_DIR)/%.S $(HEADERS)
 	@echo [AS] $<
-	$(AS) -c -o $@ $<
+	@$(AS) -c -o $@ $<
 
 $(TARGET): $(ALL_OBJS) 
 	@echo [LINK] $@
@@ -53,6 +53,7 @@ dump_dtb:
 	@qemu-system-riscv64 -machine virt -machine dumpdtb=$(OUT_DIR)/riscv64-virt.dtb > /dev/null 2>&1
 	@dtc -O dts -o $(OUT_DIR)/riscv64-virt.dts  $(OUT_DIR)/riscv64-virt.dtb > /dev/null 2>&1
 	@rm $(OUT_DIR)/riscv64-virt.dtb -f
+	@echo "$(OUT_DIR)/riscv64-virt.dts dumped"
 
 clean:
 	@rm $(OUT_DIR)/ -rf
