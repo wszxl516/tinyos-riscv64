@@ -47,7 +47,8 @@ run: all
 debug: all
 	@/usr/bin/xfce4-terminal -e \
 		'qemu-system-riscv64 $(QEMU_ARGS) -s -S'
-	@lldb -O "target create $(OUT_DIR)/$(TARGET)" -O "gdb-remote localhost:1234"
+	#@lldb -O "target create $(OUT_DIR)/$(TARGET)" -O "gdb-remote localhost:1234"
+	@riscv64-elf-gdb $(OUT_DIR)/$(TARGET) -ex "target remote :1234"
 
 dump_dtb:
 	@qemu-system-riscv64 -machine virt -machine dumpdtb=$(OUT_DIR)/riscv64-virt.dtb > /dev/null 2>&1
