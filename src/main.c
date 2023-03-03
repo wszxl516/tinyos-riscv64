@@ -1,24 +1,13 @@
 #include "stdtypes.h"
+#include "uart.h"
+#include "printf.h"
  
-u8 * uart = (u8 *)0x10000000; 
-void putchar(i8 c) {
-	*uart = c;
-	return;
-}
- 
-void print(const i8 * str) {
-	while(*str != '\0') {
-		putchar(*str);
-		str++;
-	}
-	return;
-}
- 
-void kmain(void) {
-	print("Hello world!\r\n");
+void main(void) {
+	uart_init();
+	pr_notice("Hello world!\n");
 	while(1) {
-		// Read input from the UART
-		putchar(*uart);
+		char c = get_c();
+		pr_notice("0x%x\n", c);
 	}
 	return;
 }

@@ -26,11 +26,11 @@ bss_clear:
 	addi t5, t5, 8
 	bgeu t5, t6, bss_clear
  
-	la t0, kmain
+	la t0, main
 	csrw mepc, t0
  
 	/* Jump to kernel! */
-	tail kmain
+	tail main
  
 	.cfi_endproc
  

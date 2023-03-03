@@ -16,5 +16,7 @@ typedef long long i64;
 typedef unsigned long usize;
 typedef long isize;
 
-
+typedef u32 bool;
+#define true 1
+#define false 0
 #endif //__STD_TYPES__
