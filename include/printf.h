@@ -9,7 +9,7 @@ typedef __builtin_va_list va_list;
 u32 vsnprintf(char *buf, u32 size, const char *format, va_list vl);
 u32 snprintf(char *buf, u32 size, const char *format, ...);
 u32 printf(const char *format, ...);
-
+void print_bits(usize size, void *ptr);
 int atoi(const char *str);
 
 #define COLOR_RED       "\033[91m"

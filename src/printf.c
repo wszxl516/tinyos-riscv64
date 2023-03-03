@@ -1,14 +1,6 @@
 #include "printf.h"
 #include "uart.h"
 
-
-void puts(char *str) {
-	while(*str != '\0') {
-		put_c(*str);
-		str++;
-	}
-	return;
-}
 static inline void set(char *buf, u32 size, u32 *out, char val)
 {
 	if (*out < size - 1)
@@ -241,14 +233,31 @@ u32 snprintf(char *buf, u32 size, const char *format, ...)
  */
 u32 printf(const char *format, ...)
 {
-	char buf[1024];
+	char buf[1024], *str;
 	u32 res;
 	va_list vl;
 	va_start(vl, format);
 	res = vsnprintf(buf, sizeof(buf), format, vl);
 	va_end(vl);
-	puts(buf);
+	str = buf;
+	while(*str != '\0') {
+		put_c(*str);
+		str++;
+	}
 	return res;
+}
+
+void print_bits(usize size, void *ptr)
+{
+    u8 *b = (u8*) ptr;
+    u8 byte;
+    int i, j;
+    for (i = size-1; i >= 0; i--) {
+        for (j = 7; j >= 0; j--) {
+            byte = (b[i] >> j) & 1;
+            printf("%u", byte);
+        }
+    }
 }
 
 int atoi(const char *str)

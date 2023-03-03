@@ -1,5 +1,6 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
+#define BOOT_LOGO  "TinyOS\n" 
 
 
 //ns16550a
