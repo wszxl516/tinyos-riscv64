@@ -9,11 +9,11 @@ EX_CFLAGS :=
 OUT_DIR :=$(PWD)/out
 
 override C_SRCS := $(shell find $(SRC_DIR) -name "*.c")
-override ASM_SRCS := $(shell find $(ASM_DIR) -name "*.S")
+override ASM_SRCS := $(shell find $(ASM_DIR) -name "*.s")
 override INCLUDE := $(foreach dir, $(shell find $(PWD)/include -type d), -I$(dir))
 override HEADERS := $(shell find $(PWD)/include -name "*.h")
 
-override OBJS = $(foreach file, $(C_SRCS:%.c=%.o) $(ASM_SRCS:%.S=%.o), $(OUT_DIR)/$(shell basename $(file)))
+override OBJS = $(foreach file, $(C_SRCS:%.c=%.o) $(ASM_SRCS:%.s=%.o), $(OUT_DIR)/$(shell basename $(file)))
 override CFLAGS  = -g -Wall -Wextra -mcmodel=medany -ffreestanding $(INCLUDE) $(EXP_CFLAGS)
 override LDFLAGS = -T linker.ld -lgcc -nostdlib -g
 
@@ -31,7 +31,7 @@ $(OUT_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 	@echo [CC] $<
 	@$(CC) -c -o $@ $< $(CFLAGS)
 
-$(OUT_DIR)/%.o: $(ASM_DIR)/%.S $(HEADERS)
+$(OUT_DIR)/%.o: $(ASM_DIR)/%.s $(HEADERS)
 	@echo [AS] $<
 	@$(AS) -c -o $@ $<
 

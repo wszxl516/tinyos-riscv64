@@ -1,7 +1,6 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
-#define BOOT_LOGO  "TinyOS\n" 
-
+#define BOOT_LOGO  "TinyOS!\n"
 
 //ns16550a
 #define QEMU_UART_ADDR       0x10000000

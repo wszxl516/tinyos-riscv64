@@ -5,8 +5,8 @@ typedef struct {
         volatile u32 lock;
 } spinlock_t;
 
-#define INIT_STATIC_SPIN_LOCK(name) static spinlock_t name##_lock = {.lock = 0}
-#define spin_is_locked(x)  (x->lock != 0)
+#define STATIC_INIT_SPIN_LOCK(name) static spinlock_t name = {.lock = 0}
+#define spin_is_locked(x)  (x->lock == 1)
 static inline void spin_lock(spinlock_t *lock)
 {
     while (1) {
