@@ -1,7 +1,7 @@
 #include "printf.h"
 #include "uart.h"
 
-static inline void set(char *buf, usize size, usize *out, char val)
+static inline void set(char *buf, u32 size, usize *out, char val)
 {
 	if (*out < size - 1)
 		buf[*out] = val;
@@ -21,7 +21,7 @@ static inline void set(char *buf, usize size, usize *out, char val)
 /**
  * This function implements the %x format specifier.
  */
-static inline usize _format_hex(char *buf, usize size, usize out,
+static inline usize _format_hex(char *buf, u32 size, usize out,
                                    usize val, bool lz)
 {
 	usize mask = 0xf000000000000000;
@@ -43,7 +43,7 @@ static inline usize _format_hex(char *buf, usize size, usize out,
 	return out;
 }
 
-static inline usize _format_mac(char *buf, usize size, usize out, usize mac)
+static inline usize _format_mac(char *buf, u32 size, usize out, usize mac)
 {
 	for (u32 i = 0; i < 6; i++) {
 		if (i > 0)
@@ -60,7 +60,7 @@ static inline usize _format_int(char *buf, u32 size, usize out,
                                    usize val, bool is_signed)
 {
 	u8 tmp[20]; // max base 10 digits for 32-bit int
-	usize tmpIdx = 0, rem;
+	usize tmpIdx = 0, rem = 0;
 	if (is_signed && (val & (0x8000000000000000))) {
 		val = ~(val) + 1;
 		SET(buf, size, out, '-');
@@ -82,7 +82,7 @@ static inline usize _format_int(char *buf, u32 size, usize out,
  * Implements the %I format specifier - IPv4 address, in network byte order.
  *
  */
-static inline usize _format_ipv4(char *buf, usize size, usize out,
+static inline usize _format_ipv4(char *buf, u32 size, usize out,
                                     usize val)
 {
 	out = _format_int(buf, size, out, (val >> 0) & 0xFF, false);
@@ -127,9 +127,9 @@ static inline u32 _format_str(char *buf, u32 size, usize out,
 usize vsnprintf(char *buf, u32 size, const char *format, va_list vl)
 {
 	usize out = 0;
-	usize uintval;
-	char *strval;
-	char charval;
+	usize uintval=0;
+	char *strval = NULL;
+	char charval = 0;
 
 	for (u16 in = 0; format[in]; in++) {
 		if (format[in] == '%') {
@@ -230,7 +230,7 @@ usize snprintf(char *buf, u32 size, const char *format, ...)
 usize printf(const char *format, ...)
 {
 	char buf[1024], *str;
-	usize res;
+	usize res = 0;
 	va_list vl;
 	va_start(vl, format);
 	res = vsnprintf(buf, sizeof(buf), format, vl);

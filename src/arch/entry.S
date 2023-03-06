@@ -12,7 +12,14 @@ start:
 .option norelax
 	la gp, global_pointer
 .option pop
+	csrr   t0, mhartid
+    lui    t1, 0
+    beq    t0, t1, 2f
+1:  wfi
+    j      1b
+2:
 	/* Reset satp */
+	/*disable mmu*/
 	csrw satp, zero
  
 	/* Setup stack */
