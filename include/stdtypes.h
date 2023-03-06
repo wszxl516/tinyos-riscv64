@@ -19,4 +19,5 @@ typedef long isize;
 typedef u32 bool;
 #define true 1
 #define false 0
+#define NULL ((void*)0)
 #endif //__STD_TYPES__

@@ -4,22 +4,23 @@ override PWD=$(shell pwd)
 override SRC_DIR=$(PWD)/src
 override ASM_DIR=$(SRC_DIR)/arch
 CC := riscv64-elf-gcc
-AS := riscv64-elf-as
+AS := riscv64-elf-gcc
 EX_CFLAGS := 
 OUT_DIR :=$(PWD)/out
 
 override C_SRCS := $(shell find $(SRC_DIR) -name "*.c")
-override ASM_SRCS := $(shell find $(ASM_DIR) -name "*.s")
+override ASM_SRCS := $(shell find $(ASM_DIR) -name "*.S")
 override INCLUDE := $(foreach dir, $(shell find $(PWD)/include -type d), -I$(dir))
 override HEADERS := $(shell find $(PWD)/include -name "*.h")
 
-override OBJS = $(foreach file, $(C_SRCS:%.c=%.o) $(ASM_SRCS:%.s=%.o), $(OUT_DIR)/$(shell basename $(file)))
+override OBJS = $(foreach file, $(C_SRCS:%.c=%.o) $(ASM_SRCS:%.S=%.o), $(OUT_DIR)/$(shell basename $(file)))
 override CFLAGS  = -g -Wall -Wextra -mcmodel=medany -ffreestanding $(INCLUDE) $(EXP_CFLAGS)
 override LDFLAGS = -T linker.ld -lgcc -nostdlib -g
 
 define QEMU_ARGS
 	-smp 2 \
 	-machine virt \
+	-cpu rv64 \
 	-bios none \
 	-chardev stdio,id=ttys0 \
 	-serial chardev:ttys0 \
@@ -31,9 +32,9 @@ $(OUT_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 	@echo [CC] $<
 	@$(CC) -c -o $@ $< $(CFLAGS)
 
-$(OUT_DIR)/%.o: $(ASM_DIR)/%.s $(HEADERS)
+$(OUT_DIR)/%.o: $(ASM_DIR)/%.S $(HEADERS)
 	@echo [AS] $<
-	@$(AS) -c -o $@ $<
+	@$(AS) -c -o $@ $< ${CFLAGS}
 
 $(TARGET): pre_check $(OBJS) 
 	@echo [LINK] $@

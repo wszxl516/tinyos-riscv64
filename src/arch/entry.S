@@ -1,3 +1,4 @@
+#include "config.h"
 .section .init
  
 .option norvc
@@ -11,7 +12,6 @@ start:
 .option norelax
 	la gp, global_pointer
 .option pop
- 
 	/* Reset satp */
 	csrw satp, zero
  

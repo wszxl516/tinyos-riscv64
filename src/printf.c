@@ -1,7 +1,7 @@
 #include "printf.h"
 #include "uart.h"
 
-static inline void set(char *buf, u32 size, u32 *out, char val)
+static inline void set(char *buf, usize size, usize *out, char val)
 {
 	if (*out < size - 1)
 		buf[*out] = val;
@@ -21,12 +21,12 @@ static inline void set(char *buf, u32 size, u32 *out, char val)
 /**
  * This function implements the %x format specifier.
  */
-static inline u32 _format_hex(char *buf, u32 size, u32 out,
-                                   u32 val, bool lz)
+static inline usize _format_hex(char *buf, usize size, usize out,
+                                   usize val, bool lz)
 {
-	u32 mask = 0xF0000000;
-	u32 shift = 32;
-	u32 digit;
+	usize mask = 0xf000000000000000;
+	usize shift = 64;
+	usize digit;
 	char c;
 
 	do {
@@ -43,14 +43,12 @@ static inline u32 _format_hex(char *buf, u32 size, u32 out,
 	return out;
 }
 
-static inline u32 _format_mac(char *buf, u32 size, u32 out,
-                                   u8 *macptr)
+static inline usize _format_mac(char *buf, usize size, usize out, usize mac)
 {
-	int i;
-	for (i = 0; i < 6; i++) {
+	for (u32 i = 0; i < 6; i++) {
 		if (i > 0)
 			SET(buf, size, out, ':');
-		out = _format_hex(buf, size, out, (u32)macptr[i], false);
+		out = _format_hex(buf, size, out, (usize)(mac >> (8 * i) & 0xff) , false);
 	}
 	return out;
 }
@@ -58,13 +56,12 @@ static inline u32 _format_mac(char *buf, u32 size, u32 out,
 /**
  * Implements the %u and %d format specifiers.
  */
-static inline u32 _format_int(char *buf, u32 size, u32 out,
-                                   u32 val, bool is_signed)
+static inline usize _format_int(char *buf, u32 size, usize out,
+                                   usize val, bool is_signed)
 {
-	u8 tmp[10]; // max base 10 digits for 32-bit int
-	u32 tmpIdx = 0, rem;
-
-	if (is_signed && (val & 0x80000000)) {
+	u8 tmp[20]; // max base 10 digits for 32-bit int
+	usize tmpIdx = 0, rem;
+	if (is_signed && (val & (0x8000000000000000))) {
 		val = ~(val) + 1;
 		SET(buf, size, out, '-');
 	}
@@ -85,8 +82,8 @@ static inline u32 _format_int(char *buf, u32 size, u32 out,
  * Implements the %I format specifier - IPv4 address, in network byte order.
  *
  */
-static inline u32 _format_ipv4(char *buf, u32 size, u32 out,
-                                    u32 val)
+static inline usize _format_ipv4(char *buf, usize size, usize out,
+                                    usize val)
 {
 	out = _format_int(buf, size, out, (val >> 0) & 0xFF, false);
 	SET(buf, size, out, '.');
@@ -101,7 +98,7 @@ static inline u32 _format_ipv4(char *buf, u32 size, u32 out,
 /**
  * Implements the %s format specifier.
  */
-static inline u32 _format_str(char *buf, u32 size, u32 out,
+static inline u32 _format_str(char *buf, u32 size, usize out,
                                    char *val)
 {
 	for (; *val; val++) {
@@ -127,12 +124,11 @@ static inline u32 _format_str(char *buf, u32 size, u32 out,
  * @vl: Argument list
  * @return: number of bytes written
  */
-u32 vsnprintf(char *buf, u32 size, const char *format, va_list vl)
+usize vsnprintf(char *buf, u32 size, const char *format, va_list vl)
 {
-	u32 out = 0;
-	u32 uintval;
+	usize out = 0;
+	usize uintval;
 	char *strval;
-	u8 *macptr;
 	char charval;
 
 	for (u16 in = 0; format[in]; in++) {
@@ -148,7 +144,7 @@ u32 vsnprintf(char *buf, u32 size, const char *format, va_list vl)
 			// otherwise, handle format specifiers
 			switch (format[in]) {
 			case 'x':
-				uintval = va_arg(vl, u32);
+				uintval = va_arg(vl, usize);
 				out = _format_hex(buf, size, out, uintval, false);
 				break;
 			case '0':
@@ -156,7 +152,7 @@ u32 vsnprintf(char *buf, u32 size, const char *format, va_list vl)
 					SET(buf, size, out, '%');
 					SET(buf, size, out, '0');
 				} else {
-					uintval = va_arg(vl, u32);
+					uintval = va_arg(vl, usize);
 					out = _format_hex(buf, size, out, uintval, true);
 					in++;
 				}
@@ -167,17 +163,17 @@ u32 vsnprintf(char *buf, u32 size, const char *format, va_list vl)
 				break;
 			case 'u':
 			case 'd':
-				uintval = va_arg(vl, u32);
+				uintval = va_arg(vl, usize);
 				out = _format_int(buf, size, out, uintval,
 				                  format[in] == 'd');
 				break;
 			case 'I':
-				uintval = va_arg(vl, u32);
+				uintval = va_arg(vl, usize);
 				out = _format_ipv4(buf, size, out, uintval);
 				break;
 			case 'M':
-				macptr = va_arg(vl, u8 *);
-				out = _format_mac(buf, size, out, macptr);
+				uintval = va_arg(vl, usize);
+				out = _format_mac(buf, size, out, uintval);
 				break;
 			case 'c':
 				charval = (char)(0xFF & va_arg(vl, int));
@@ -210,7 +206,7 @@ nul_ret:
  * @format: Format string
  * @return: Number of bytes written
  */
-u32 snprintf(char *buf, u32 size, const char *format, ...)
+usize snprintf(char *buf, u32 size, const char *format, ...)
 {
 	u32 res;
 	va_list vl;
@@ -231,10 +227,10 @@ u32 snprintf(char *buf, u32 size, const char *format, ...)
  * @format: Format string
  * @return: Number of bytes written
  */
-u32 printf(const char *format, ...)
+usize printf(const char *format, ...)
 {
 	char buf[1024], *str;
-	u32 res;
+	usize res;
 	va_list vl;
 	va_start(vl, format);
 	res = vsnprintf(buf, sizeof(buf), format, vl);
