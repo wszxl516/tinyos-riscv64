@@ -12,8 +12,6 @@ SECTIONS {
 		PROVIDE(bss_start = .);
 		*(.bss);
 		. += 4096;
-		PROVIDE(stack_top = .);
-		. += 4096 * 4;
 		PROVIDE(global_pointer = .);
 		PROVIDE(bss_end = .);
 	}
@@ -23,4 +21,16 @@ SECTIONS {
 	.data : ALIGN(4K) {
 		*(.data);
 	}
+	.stack : ALIGN(4k) {
+		. += 4096;
+		PROVIDE(stack_bottom = .);
+		. += 4096 * 4;
+		PROVIDE(stack_top = .);
+		. += 4096;
+	}
+	.mm_set : ALIGN(4k) {
+		PROVIDE(mm_set_start = .);
+		PROVIDE(mm_set_end = .);
+	}
+	PROVIDE(heap_start = .);
 }
