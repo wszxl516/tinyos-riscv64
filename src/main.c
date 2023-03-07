@@ -9,6 +9,9 @@ void main(void) {
 	pr_notice(BOOT_LOGO "\n");
 	pr_info("################\n");
 	pr_info("CPU: %x.%x.%x\n", vendor_id(), machine_id(), machine_impl_id());
+	char extensions[26] = {0};
+	machine_extensions(extensions);
+	pr_info("CPU Extensions: %s\n", extensions);
 	pr_info("riscv%u, Core: %d\n", machine_bits(), current_core());
 	while(1) {
 		char c = get_c();
