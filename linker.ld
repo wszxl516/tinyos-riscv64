@@ -4,6 +4,7 @@ ENTRY(start);
  
 SECTIONS {
 	/* Include entry point at start of binary */
+	PROVIDE(text_start = .);
 	.text : ALIGN(4K) {
 		*(.init);
 		*(.text);

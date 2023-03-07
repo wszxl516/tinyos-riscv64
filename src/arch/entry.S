@@ -24,9 +24,12 @@ loop:
     jal      loop
 	
 setup_s_mode:
-	# set MPP to 1 (supervisor mode)
+	/*set MPP to 1 (supervisor mode) */ 
 	li   t0, (0b1 << 11)
     csrw mstatus, t0
+	/* enable fpu*/
+	li   t0, (0b1 << 13)
+	csrw sstatus, t0
 	/* Reset satp  disable mmu*/
 	csrw satp, zero
 	/* Clear the BSS section */

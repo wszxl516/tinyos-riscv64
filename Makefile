@@ -3,8 +3,8 @@ TARGET=kernel.elf
 override PWD=$(shell pwd)
 override SRC_DIR=$(PWD)/src
 override ASM_DIR=$(SRC_DIR)/arch
-CC := riscv64-elf-gcc
-AS := riscv64-elf-gcc
+CC := riscv64-elf-gcc -march=rv64imafdc -mabi=lp64d
+AS := $(CC)
 EX_CFLAGS := 
 OUT_DIR :=$(PWD)/out
 
@@ -15,7 +15,7 @@ override HEADERS := $(shell find $(PWD)/include -name "*.h")
 
 override OBJS = $(foreach file, $(C_SRCS:%.c=%.o) $(ASM_SRCS:%.S=%.o), $(OUT_DIR)/$(shell basename $(file)))
 override CFLAGS  = -g -Wall -Wextra -mcmodel=medany -ffreestanding $(INCLUDE) $(EXP_CFLAGS)
-override LDFLAGS = -T linker.ld -lgcc -nostdlib -g
+override LDFLAGS = -T linker.ld -lgcc -nostdlib -g $(EXP_CFLAGS) 
 
 define QEMU_ARGS
 	-smp 2 \
