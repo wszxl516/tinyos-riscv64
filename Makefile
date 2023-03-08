@@ -13,13 +13,14 @@ override ASM_SRCS := $(shell find $(ASM_DIR) -name "*.S")
 override INCLUDE := $(foreach dir, $(shell find $(PWD)/include -type d), -I$(dir))
 override HEADERS := $(shell find $(PWD)/include -name "*.h")
 
-override OBJS = $(foreach file, $(C_SRCS:%.c=%.o) $(ASM_SRCS:%.S=%.o), $(OUT_DIR)/$(shell basename $(file)))
+override OBJS = $(C_SRCS:$(SRC_DIR)/%.c= $(OUT_DIR)/%.o) $(ASM_SRCS:$(SRC_DIR)/%.c= $(OUT_DIR)/%.o)
 override CFLAGS  = -g -Wall -Wextra -mcmodel=medany -ffreestanding $(INCLUDE) $(EXP_CFLAGS)
 override LDFLAGS = -T linker.ld -lgcc -nostdlib -g $(EXP_CFLAGS) 
 
 define QEMU_ARGS
 	-smp 2 \
 	-machine virt \
+	-m 128M \
 	-cpu rv64 \
 	-bios none \
 	-chardev stdio,id=ttys0 \
@@ -28,12 +29,15 @@ define QEMU_ARGS
 	-nographic \
 	-kernel $(OUT_DIR)/$(TARGET)
 endef
+
 $(OUT_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 	@echo [CC] $<
+	@mkdir -p $(dir $@)
 	@$(CC) -c -o $@ $< $(CFLAGS)
 
 $(OUT_DIR)/%.o: $(ASM_DIR)/%.S $(HEADERS)
 	@echo [AS] $<
+	@mkdir -p $(dir $@)
 	@$(AS) -c -o $@ $< ${CFLAGS}
 
 $(TARGET): pre_check $(OBJS) 

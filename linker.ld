@@ -29,9 +29,6 @@ SECTIONS {
 		PROVIDE(stack_top = .);
 		. += 4096;
 	}
-	.mm_set : ALIGN(4k) {
-		PROVIDE(mm_set_start = .);
-		PROVIDE(mm_set_end = .);
-	}
+  
 	PROVIDE(heap_start = .);
 }

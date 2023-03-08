@@ -4,6 +4,7 @@
 #include "printf.h"
 #include "cpu.h"
 #include "mm.h"
+#include "heap.h"
 
 void main(void) {
 	uart_init();
@@ -16,11 +17,23 @@ void main(void) {
 	pr_info("riscv%u, Core: %d\n", machine_bits(), current_core());
 	pr_info("kernel size: 0x%x\n", heap_start - text_start);
 	pr_info("bss: 0x%x - 0x%x\n",bss_start, bss_end);
-	pr_info("mm_set: 0x%x - 0x%x\n",mm_set_start, mm_set_end);
 	double kernel_size = (usize)heap_start - (usize)text_start;
 	usize stack_size = (usize)stack_top - (usize)stack_bottom;
 	pr_info("stack 0x%x - 0x%x, size: %u bytes, %f%\n", stack_bottom, stack_top ,stack_size, (stack_size/kernel_size)*100);
 	pr_info("#########################################################\n");
+	char *ptr = (char*)alloc(32);
+	ptr[31] = 0;
+	for (u32 i = 0; i <  31 ; i++)
+		ptr[i] = 'a';
+	pr_info("%s\n", ptr);
+
+	char *ptr1 = (char*)alloc(21708);
+	ptr1[31] = 0;
+	for (u32 i = 0; i <  31 ; i++)
+		ptr1[i] = 'a';
+	pr_info("%s\n", ptr1);
+	free(ptr1);
+	free(ptr);
 	while(1) {
 		char c = get_c();
 		pr_info("key: 0x%x\n", c);
