@@ -88,6 +88,23 @@ static inline usize _format_float(char *buf, u32 size, usize out, double val)
 	return _format_int(buf, size, out, float_bits, false);
 }
 
+
+static inline usize _format_pointer(char *buf, u32 size, usize out, usize val)
+{
+	if (!val)
+	{
+		SET(buf, size, out, 'N');
+		SET(buf, size, out, 'U');
+		SET(buf, size, out, 'L');
+		SET(buf, size, out, 'L');
+	}
+	else{
+		SET(buf, size, out, '0');
+		SET(buf, size, out, 'x');
+		out = _format_hex(buf, size, out, val, false);
+	}
+	return out;
+}
 /**
  * Implements the %I format specifier - IPv4 address, in network byte order.
  *
@@ -182,6 +199,11 @@ usize vsnprintf(char *buf, u32 size, const char *format, va_list vl)
 			case 'f':
 				float_val = va_arg(vl, double);
 				out = _format_float(buf, size, out, float_val);
+				break;
+			case 'p':
+			case 'P':
+				uintval = (usize)va_arg(vl, void *);
+				out = _format_pointer(buf, size, out, uintval);
 				break;
 			case 'I':
 				uintval = va_arg(vl, usize);

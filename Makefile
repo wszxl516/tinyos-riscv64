@@ -14,8 +14,9 @@ override INCLUDE := $(foreach dir, $(shell find $(PWD)/include -type d), -I$(dir
 override HEADERS := $(shell find $(PWD)/include -name "*.h")
 
 override OBJS = $(C_SRCS:$(SRC_DIR)/%.c= $(OUT_DIR)/%.o) $(ASM_SRCS:$(SRC_DIR)/%.c= $(OUT_DIR)/%.o)
-override CFLAGS  = -g -Wall -Wextra -mcmodel=medany -ffreestanding $(INCLUDE) $(EXP_CFLAGS)
-override LDFLAGS = -T linker.ld -lgcc -nostdlib -g $(EXP_CFLAGS) 
+EX_CFLAGS=
+override CFLAGS  = -g -Wall -Wextra -mcmodel=medany -ffreestanding $(INCLUDE) -D__MEM_INFO__
+override LDFLAGS = -T linker.ld -lgcc -nostdlib -g
 
 define QEMU_ARGS
 	-smp 2 \
@@ -33,16 +34,16 @@ endef
 $(OUT_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 	@echo [CC] $<
 	@mkdir -p $(dir $@)
-	@$(CC) -c -o $@ $< $(CFLAGS)
+	@$(CC) -c -o $@ $< $(CFLAGS) $(EX_CFLAGS)
 
 $(OUT_DIR)/%.o: $(ASM_DIR)/%.S $(HEADERS)
 	@echo [AS] $<
 	@mkdir -p $(dir $@)
-	@$(AS) -c -o $@ $< ${CFLAGS}
+	@$(AS) -c -o $@ $< $(CFLAGS) $(EX_CFLAGS)
 
 $(TARGET): pre_check $(OBJS) 
 	@echo [LINK] $@
-	@$(CC) -o $(OUT_DIR)/$(TARGET) $(OBJS) $(CFLAGS)  $(LDFLAGS)
+	@$(CC) -o $(OUT_DIR)/$(TARGET) $(OBJS) $(CFLAGS)  $(LDFLAGS) $(EX_CFLAGS)
 
 all:pre_check $(TARGET)
 
@@ -63,6 +64,11 @@ debug: all
 		'qemu-system-riscv64 $(QEMU_ARGS) -s -S'
 	#@lldb -O "target create $(OUT_DIR)/$(TARGET)" -O "gdb-remote localhost:1234"
 	@riscv64-linux-gnu-gdb $(OUT_DIR)/$(TARGET) -ex "target remote :1234"
+
+test_pre: clean
+	$(eval EX_CFLAGS= -D__RUN_TEST__)
+
+test: test_pre run
 
 dump_dtb:
 	@qemu-system-riscv64 -machine virt -machine dumpdtb=$(OUT_DIR)/riscv64-virt.dtb > /dev/null 2>&1

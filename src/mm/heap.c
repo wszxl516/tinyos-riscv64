@@ -12,7 +12,7 @@ static heap_t heap = {
     .used_list = {0},
     .start = HEAP_START, 
     .end = HEAP_END
-    };
+};
 
 static i32 find_page(i32 n_pages)
 {
@@ -61,6 +61,8 @@ void *alloc(u32 size){
 }
 
 void free(void *ptr){
+    if (!ptr)
+        return;
     usize page_start = ADDR_TO_PAGE(ptr);
     u32 page_num = 0;
     for (u32 i = 0; i < heap.used_num; i++)

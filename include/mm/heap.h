@@ -20,7 +20,7 @@ typedef struct OPTIMIZATION_ALIGN(4)
     bool used_list[HEAP_PAGE_NUM];
     usize start;
     usize end;
-} heap_t;
+} heap_t __USED__;
 
 void heap_init();
 void *alloc(u32 size);
