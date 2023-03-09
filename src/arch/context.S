@@ -1,10 +1,9 @@
-.globl trap_handler
 .align 4
-trap_handler:
-        # make room to save registers.
+.global _trap_save_context
+.macro _trap_save_context func
+        # get 8 * 32 bytes stack to save registers.
         addi sp, sp, -256
-        # save the registers.
-        sd ra, 0(sp)
+        sd ra, 0(sp) 
         sd sp, 8(sp)
         sd gp, 16(sp)
         sd tp, 24(sp)
@@ -35,12 +34,11 @@ trap_handler:
         sd t4, 224(sp)
         sd t5, 232(sp)
         sd t6, 240(sp)
-        call handle_trap
+        call \func
         # restore registers.
         ld ra, 0(sp)
         ld sp, 8(sp)
         ld gp, 16(sp)
-        # not this, in case we moved CPUs: ld tp, 24(sp)
         ld t0, 32(sp)
         ld t1, 40(sp)
         ld t2, 48(sp)
@@ -69,4 +67,8 @@ trap_handler:
         ld t5, 232(sp)
         ld t6, 240(sp)
         addi sp, sp, 256
+.endm
+.globl trap_handler
+trap_handler:
+        _trap_save_context(handle_trap)
         mret
