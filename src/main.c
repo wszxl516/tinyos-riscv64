@@ -22,6 +22,7 @@ void main(void) {
 	REBOOT();
 	SHUTDONW();
 #endif //__RUN_TEST__
+	u32 i = *((u32 *)(1<<63));
 	while(1) {
 		char c = get_c();
 		pr_info("key: 0x%x\n", c);
