@@ -27,6 +27,13 @@
 	__asm__ volatile("csrw " #name ", %0" : : "r"(value)); \
 })
 
+#define REG_UPDATE_P(name, value) REG_WRITE_P(name, (REG_READ_P(name) | value))
+#define REG_UPDATE_G(name, value) REG_WRITE_G(name, (REG_READ_G(name) | value))
+
+#define M_MODE_RET()  __asm__ volatile("mret")
+#define S_MODE_RET()  __asm__ volatile("sret")
+#define SLEEP_CPU()   __asm__ volatile("wfi")
+
 static inline u32 machine_bits()
 {
 	usize xlen = 0; 

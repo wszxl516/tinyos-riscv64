@@ -4,7 +4,6 @@
 #include "common.h"
 extern void main(void);
 extern void trap_handler();
-#define CLEAR_BSS() memset(bss_start, (bss_end - bss_start), 0)
 
 typedef enum{
     //1 0 RESERVED
@@ -45,4 +44,12 @@ typedef enum{
     //48–63 DESIGNATED FOR CUSTOM USE
     //≥64 RESERVED
 } exception_t;
+
+typedef enum{
+    PMP_R = (1L << 0),
+    PMP_W = (1L << 1),
+    PMP_X = (1L << 2),
+    PMP_TOR =  (1L << 3),
+    PMP_NAPOT = (3L << 3)
+}pmp_t;
 #endif //__START_H__

@@ -16,9 +16,9 @@ _start:
 loop:
 	/*current core*/
 	csrr t0, mhartid
-    beq  t0, zero, star_label
+    beq  t0, zero, start_label
     jal     loop 
-star_label:
+start_label:
 	la gp, global_pointer
 	/* Setup stack */
 	la sp, stack_top

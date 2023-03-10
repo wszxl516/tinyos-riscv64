@@ -19,6 +19,7 @@ typedef usize entry_t __USED__;
 #define VIRT_ADDR_MASK (BASE_MASK << VIRT_LEN)
 #define CORRECT_VIRT(addr)  (!(VIRT_ADDR_MASK & addr ^ VIRT_ADDR_MASK))
 #define CORRECT_PHY(addr)   (addr < VIRT_ADDR_MASK)
+#define CLEAR_BSS() memset(bss_start, (bss_end - bss_start), 0)
 
 #define PRINT_KERNEL_INFO()do \
 {\

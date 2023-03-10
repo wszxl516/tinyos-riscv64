@@ -6,9 +6,9 @@
 
 
 void handle_trap() {
-    usize mcause = REG_READ_P(mcause), mepc = REG_READ_P(mepc);
-    u32 exception_type = mcause >> (64 - 1);
-    usize exception_code = mcause & (-1 >> 1);
+    usize scause = REG_READ_P(scause), sepc = REG_READ_P(sepc);
+    u32 exception_type = scause >> (64 - 1);
+    usize exception_code = scause & (-1 >> 1);
     // Interrupt
     if (exception_type)
     {
@@ -95,32 +95,42 @@ void handle_trap() {
             break;
         }
     }
-    pr_err("\n");
-    //rest
-    REG_WRITE_P(mepc, (mepc + 0x4));
+    pr_err(" address: %p \n", (void*)sepc);
 }
+
+void switch_to_s_mode(){
+    pr_notice("Entering S-mode.\n");
+    M_MODE_RET();
+}
+
 void start(){
     //set thread pointer to 0
     REG_WRITE_G(tp, 0);
+    // enable fpu
     //set MPP to 1 (supervisor mode)
     //mstatus.MIE = Supervisor
-    REG_WRITE_P(mstatus, (0b1 << 11));
+    REG_UPDATE_P(mstatus, (0b1 << 13) | (0b1 << 11));
+    REG_UPDATE_P(sstatus, (0b1 << 13) | (0b1 << 11));
+    pr_notice(BOOT_LOGO "\n");
+    #ifdef __MEM_INFO__
+        PRINT_KERNEL_INFO();
+    #endif //__MEM_INFO__
     // Reset satp  disable mmu
     set_mmu(MMU_BARE, 0, 0);
-    // physical memory protection
-    REG_WRITE_P(pmpcfg0,0xf);
-    REG_WRITE_P(pmpaddr0, 0xffffffffffffffff);
     // delegate all interrupts and exceptions to supervisor mode.
     REG_WRITE_P(medeleg, 0xffff);
     REG_WRITE_P(mideleg, 0xffff);
     // keep each CPU's hartid in its tp register, for cpuid().
     REG_WRITE_G(tp, REG_READ_P(mhartid));
-    // enable fpu
-    REG_WRITE_P(sstatus, (0b1 << 13));
     // set trap handler
     REG_WRITE_P(mtvec, (usize)trap_handler);
-    /*machine mode exception*/
+    REG_WRITE_P(stvec, (usize)trap_handler);
+    /*machine mode exception return pointer*/
     REG_WRITE_P(mepc, (usize)main);
-    CLEAR_BSS();
-    main();
+    /*supervisor mode exception return pointer*/
+    REG_WRITE_P(sepc, (usize)main);
+    // main();
+    REG_WRITE_P(pmpcfg0, PMP_R | PMP_W | PMP_X | PMP_NAPOT);
+    REG_WRITE_P(pmpaddr0, U64_MAX >> 10);
+    switch_to_s_mode();
 }
