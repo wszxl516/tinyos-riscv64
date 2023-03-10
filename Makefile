@@ -16,7 +16,7 @@ override HEADERS := $(shell find $(PWD)/include -name "*.h")
 override OBJS = $(C_SRCS:$(SRC_DIR)/%.c= $(OUT_DIR)/%.o) $(ASM_SRCS:$(SRC_DIR)/%.c= $(OUT_DIR)/%.o)
 EX_CFLAGS=
 override CFLAGS  = -g -Wall -Wextra -mcmodel=medany -ffreestanding $(INCLUDE) -D__MEM_INFO__
-override LDFLAGS = -T linker.ld -lgcc -nostdlib -g
+override LDFLAGS = -T linker.ld -lgcc -nostdlib -g -Wl,--Map=$(OUT_DIR)/kernel.map
 
 define QEMU_ARGS
 	-smp 2 \

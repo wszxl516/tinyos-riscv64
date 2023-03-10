@@ -7,6 +7,7 @@ trap_handler:
         addi sp, sp, -REG_STACK_SIZE
         SAVE_G_REG 1, 31
         mv s0, sp
+        mv a0, sp
         call handle_trap
         # restore registers.
         mv sp, s0

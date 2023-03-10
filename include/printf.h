@@ -6,11 +6,12 @@
 #define va_arg(v,l)	__builtin_va_arg(v,l)
 typedef __builtin_va_list va_list;
 
-usize vsnprintf(char *buf, u32 size, const char *format, va_list vl);
-usize snprintf(char *buf, u32 size, const char *format, ...);
-usize printf(const char *format, ...);
-void print_bits(usize size, void *ptr);
-int atoi(const char *str);
+typedef void (*putcf) (void *, char);
+int k_sprintf(char *str, const char *format, ...);
+int k_snprintf(char *str, usize size, const char *format, ...);
+int k_vsnprintf(char *str, usize size, const char *format, va_list ap);
+int k_vsprintf(char *str, const char *format, va_list ap);
+int k_printf(const char* fmt, ...);
 
 #define COLOR_RED       "\033[91m"
 #define COLOR_GREEN     "\033[92m"
@@ -20,10 +21,10 @@ int atoi(const char *str);
 #define COLOR_END       "\033[0m"
 
 
-#define pr_info(fmt,arg...) printf(COLOR_WHITE fmt COLOR_END, ##arg)
-#define pr_notice(fmt,arg...) printf(COLOR_GREEN fmt COLOR_END, ##arg)
-#define pr_debug(fmt,arg...) printf(COLOR_BLUE fmt COLOR_END, ##arg)
-#define pr_warn(fmt,arg...) printf(COLOR_YELLOW fmt COLOR_END, ##arg)
-#define pr_err(fmt,arg...) printf(COLOR_RED fmt COLOR_END, ##arg)
+#define pr_info(fmt,arg...) k_printf(COLOR_WHITE fmt COLOR_END, ##arg)
+#define pr_notice(fmt,arg...) k_printf(COLOR_GREEN fmt COLOR_END, ##arg)
+#define pr_debug(fmt,arg...) k_printf(COLOR_BLUE fmt COLOR_END, ##arg)
+#define pr_warn(fmt,arg...) k_printf(COLOR_YELLOW fmt COLOR_END, ##arg)
+#define pr_err(fmt,arg...) k_printf(COLOR_RED fmt COLOR_END, ##arg)
 
 #endif //__PRINTF_H__

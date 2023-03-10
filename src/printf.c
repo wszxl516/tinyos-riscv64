@@ -1,308 +1,422 @@
 #include "printf.h"
 #include "uart.h"
 
-static inline void set(char *buf, u32 size, usize *out, char val)
-{
-	if (*out < size - 1)
-		buf[*out] = val;
-	else if (*out == size - 1)
-		buf[*out] = '\0';
-	*out = *out + 1;
-}
+#ifdef __GNUC__
+# define _k_GCC_NO_INLINE_  __attribute__ ((noinline))
+#else
+# define _k_GCC_NO_INLINE_
+#endif
 
-/**
- * This macro assigns a value to the buffer at the given index. It increments
- * the index after assigning the value. However, it takes care of bounds checks
- * so that we don't have to constantly think about them. It also "automatically"
- * nul-terminates the string if we hit the end of the buffer.
+/*
+ * Implementation
  */
-#define SET(buf, size, out, val) set(buf, size, &out, val)
+struct param {
+    char lz:1;          /**<  Leading zeros */
+    char alt:1;         /**<  alternate form */
+    char uc:1;          /**<  Upper case (for base16 only) */
+    char align_left:1;  /**<  0 == align right (default), 1 == align left */
+    unsigned int width; /**<  field width */
+    char sign;          /**<  The sign to display (if any) */
+    unsigned int base;  /**<  number base (e.g.: 8, 10, 16) */
+    char *bf;           /**<  Buffer to output */
+};
 
-/**
- * This function implements the %x format specifier.
- */
-static inline usize _format_hex(char *buf, u32 size, usize out,
-                                   usize val, bool lz)
+
+static void _k_GCC_NO_INLINE_ ulli2a(
+    unsigned long long int num, struct param *p)
 {
-	usize mask = 0xf000000000000000;
-	usize shift = 64;
-	usize digit;
-	char c;
-
-	do {
-		shift -= 4;
-		digit = (val & mask) >> shift;
-
-		if (digit || lz || shift == 0) {
-			lz = true;
-			c = (digit >= 10 ? 'a' + digit - 10 : '0' + digit);
-			SET(buf, size, out, c);
-		}
-		mask >>= 4;
-	} while (shift > 0);
-	return out;
-}
-
-static inline usize _format_mac(char *buf, u32 size, usize out, usize mac)
-{
-	for (u32 i = 0; i < 6; i++) {
-		if (i > 0)
-			SET(buf, size, out, ':');
-		out = _format_hex(buf, size, out, (usize)(mac >> (8 * i) & 0xff) , false);
-	}
-	return out;
-}
-
-/**
- * Implements the %u and %d format specifiers.
- */
-static inline usize _format_int(char *buf, u32 size, usize out,
-                                   usize val, bool is_signed)
-{
-	u8 tmp[20]; // max base 10 digits for 32-bit int
-	usize tmpIdx = 0, rem = 0;
-	if (is_signed && (val & (0x8000000000000000))) {
-		val = ~(val) + 1;
-		SET(buf, size, out, '-');
-	}
-
-	do {
-		rem = val % 10; // should do uidivmod, only one call
-		val = val / 10;
-		tmp[tmpIdx++] = rem;
-	} while (val);
-	do {
-		tmpIdx--;
-		SET(buf, size, out, '0' + tmp[tmpIdx]);
-	} while (tmpIdx > 0);
-	return out;
-}
-
-static inline usize _format_float(char *buf, u32 size, usize out, double val)
-{
-	usize int_bits = (usize)val;
-	double unit = 100;
-	usize float_bits = (usize)(val * unit - (double)int_bits * unit);
-	out = _format_int(buf, size, out, int_bits, false);
-	SET(buf, size, out, '.');
-	return _format_int(buf, size, out, float_bits, false);
-}
-
-
-static inline usize _format_pointer(char *buf, u32 size, usize out, usize val)
-{
-	if (!val)
-	{
-		SET(buf, size, out, 'N');
-		SET(buf, size, out, 'U');
-		SET(buf, size, out, 'L');
-		SET(buf, size, out, 'L');
-	}
-	else{
-		SET(buf, size, out, '0');
-		SET(buf, size, out, 'x');
-		out = _format_hex(buf, size, out, val, false);
-	}
-	return out;
-}
-/**
- * Implements the %I format specifier - IPv4 address, in network byte order.
- *
- */
-static inline usize _format_ipv4(char *buf, u32 size, usize out,
-                                    usize val)
-{
-	out = _format_int(buf, size, out, (val >> 0) & 0xFF, false);
-	SET(buf, size, out, '.');
-	out = _format_int(buf, size, out, (val >> 8) & 0xFF, false);
-	SET(buf, size, out, '.');
-	out = _format_int(buf, size, out, (val >> 16) & 0xFF, false);
-	SET(buf, size, out, '.');
-	out = _format_int(buf, size, out, (val >> 24) & 0xFF, false);
-	return out;
-}
-
-/**
- * Implements the %s format specifier.
- */
-static inline u32 _format_str(char *buf, u32 size, usize out,
-                                   char *val)
-{
-	for (; *val; val++) {
-		SET(buf, size, out, *val);
-	}
-	return out;
-}
-
-/**
- * This is the fundamental formatting function, although it is not the one users
- * will call frequently. The v means that it takes a va_list directly, which is
- * useful for sharing code across variadic functions. The s means that it will
- * write to a buffer. The n means that it will not write past the given buffer
- * size.
- *
- * Supports a minimal subset of standard C format language. Format specifiers
- * may only be a single character: field widths, padding bytes, etc, may not be
- * specified in this implementation. Available format specifiers: %x, %s
- *
- * @buf: Where to write the output
- * @size: Size of the output buffer
- * @format: Format string
- * @vl: Argument list
- * @return: number of bytes written
- */
-usize vsnprintf(char *buf, u32 size, const char *format, va_list vl)
-{
-	usize out = 0;
-	usize uintval=0;
-	double float_val=0.0;
-	char *strval = NULL;
-	char charval = 0;
-
-	for (u16 in = 0; format[in]; in++) {
-		if (format[in] == '%') {
-			in++;
-
-			// when string ends with %, copy it literally
-			if (!format[in]) {
-				SET(buf, size, out, '%');
-				goto nul_ret;
-			}
-
-			// otherwise, handle format specifiers
-			switch (format[in]) {
-			case 'x':
-				uintval = va_arg(vl, usize);
-				out = _format_hex(buf, size, out, uintval, false);
-				break;
-			case '0':
-				if (format[in+1] != 'x') {
-					SET(buf, size, out, '%');
-					SET(buf, size, out, '0');
-				} else {
-					uintval = va_arg(vl, usize);
-					out = _format_hex(buf, size, out, uintval, true);
-					in++;
-				}
-				break;
-			case 's':
-				strval = va_arg(vl, char *);
-				out = _format_str(buf, size, out, strval);
-				break;
-			case 'u':
-			case 'd':
-				uintval = va_arg(vl, usize);
-				out = _format_int(buf, size, out, uintval,
-				                  format[in] == 'd');
-				break;
-			case 'F':
-			case 'f':
-				float_val = va_arg(vl, double);
-				out = _format_float(buf, size, out, float_val);
-				break;
-			case 'p':
-			case 'P':
-				uintval = (usize)va_arg(vl, void *);
-				out = _format_pointer(buf, size, out, uintval);
-				break;
-			case 'I':
-				uintval = va_arg(vl, usize);
-				out = _format_ipv4(buf, size, out, uintval);
-				break;
-			case 'M':
-				uintval = va_arg(vl, usize);
-				out = _format_mac(buf, size, out, uintval);
-				break;
-			case 'c':
-				charval = (char)(0xFF & va_arg(vl, int));
-				SET(buf, size, out, charval);
-				break;
-			case '%':
-				SET(buf, size, out, '%');
-				break;
-			default:
-				// default is to copy the unrecognized specifier
-				// that may not be a great idea...
-				SET(buf, size, out, '%');
-				SET(buf, size, out, format[in]);
-			}
-
-		} else {
-			SET(buf, size, out, format[in]);
-		}
-	}
-nul_ret:
-	SET(buf, size, out, '\0');
-	return out - 1; // final count does not include nul-terminator
-}
-
-/**
- * Format a string into a buffer, without exceeding its size. See vsnprintf()
- * for details on formatting.
- * @buf: Where to write the output
- * @size: Size of the output buffer
- * @format: Format string
- * @return: Number of bytes written
- */
-usize snprintf(char *buf, u32 size, const char *format, ...)
-{
-	u32 res;
-	va_list vl;
-	va_start(vl, format);
-	res = vsnprintf(buf, size, format, vl);
-	va_end(vl);
-	return res;
-}
-
-/**
- * Format a string and print it to the console. See vsnprintf() for details on
- * formatting.
- *
- * NOTE: There is a fixed buffer size (see below). Make sure your messages will
- * fit into it. Also, the buffer is stack-allocated, so we need to be careful
- * with the size, or we may start running into the TAGS section.
- *
- * @format: Format string
- * @return: Number of bytes written
- */
-usize printf(const char *format, ...)
-{
-	char buf[1024], *str;
-	usize res = 0;
-	va_list vl;
-	va_start(vl, format);
-	res = vsnprintf(buf, sizeof(buf), format, vl);
-	va_end(vl);
-	str = buf;
-	while(*str != '\0') {
-		put_c(*str);
-		str++;
-	}
-	return res;
-}
-
-void print_bits(usize size, void *ptr)
-{
-    u8 *b = (u8*) ptr;
-    u8 byte;
-    int i, j;
-    for (i = size-1; i >= 0; i--) {
-        for (j = 7; j >= 0; j--) {
-            byte = (b[i] >> j) & 1;
-            printf("%u", byte);
+    int n = 0;
+    unsigned long long int d = 1;
+    char *bf = p->bf;
+    while (num / d >= p->base)
+        d *= p->base;
+    while (d != 0) {
+        int dgt = num / d;
+        num %= d;
+        d /= p->base;
+        if (n || dgt > 0 || d == 0) {
+            *bf++ = dgt + (dgt < 10 ? '0' : (p->uc ? 'A' : 'a') - 10);
+            ++n;
         }
+    }
+    *bf = 0;
+}
+
+static void lli2a(long long int num, struct param *p)
+{
+    if (num < 0) {
+        num = -num;
+        p->sign = '-';
+    }
+    ulli2a(num, p);
+}
+
+static void uli2a(unsigned long int num, struct param *p)
+{
+    int n = 0;
+    unsigned long int d = 1;
+    char *bf = p->bf;
+    while (num / d >= p->base)
+        d *= p->base;
+    while (d != 0) {
+        int dgt = num / d;
+        num %= d;
+        d /= p->base;
+        if (n || dgt > 0 || d == 0) {
+            *bf++ = dgt + (dgt < 10 ? '0' : (p->uc ? 'A' : 'a') - 10);
+            ++n;
+        }
+    }
+    *bf = 0;
+}
+
+static void li2a(long num, struct param *p)
+{
+    if (num < 0) {
+        num = -num;
+        p->sign = '-';
+    }
+    uli2a(num, p);
+}
+
+static void ui2a(unsigned int num, struct param *p)
+{
+    int n = 0;
+    unsigned int d = 1;
+    char *bf = p->bf;
+    while (num / d >= p->base)
+        d *= p->base;
+    while (d != 0) {
+        int dgt = num / d;
+        num %= d;
+        d /= p->base;
+        if (n || dgt > 0 || d == 0) {
+            *bf++ = dgt + (dgt < 10 ? '0' : (p->uc ? 'A' : 'a') - 10);
+            ++n;
+        }
+    }
+    *bf = 0;
+}
+
+static void i2a(int num, struct param *p)
+{
+    if (num < 0) {
+        num = -num;
+        p->sign = '-';
+    }
+    ui2a(num, p);
+}
+
+static int a2d(char ch)
+{
+    if (ch >= '0' && ch <= '9')
+        return ch - '0';
+    else if (ch >= 'a' && ch <= 'f')
+        return ch - 'a' + 10;
+    else if (ch >= 'A' && ch <= 'F')
+        return ch - 'A' + 10;
+    else
+        return -1;
+}
+
+static char a2u(char ch, const char **src, int base, unsigned int *nump)
+{
+    const char *p = *src;
+    unsigned int num = 0;
+    int digit;
+    while ((digit = a2d(ch)) >= 0) {
+        if (digit > base)
+            break;
+        num = num * base + digit;
+        ch = *p++;
+    }
+    *src = p;
+    *nump = num;
+    return ch;
+}
+
+static void putchw(void *putp, putcf putf, struct param *p)
+{
+    char ch;
+    int n = p->width;
+    char *bf = p->bf;
+
+    /* Number of filling characters */
+    while (*bf++ && n > 0)
+        n--;
+    if (p->sign)
+        n--;
+    if (p->alt && p->base == 16)
+        n -= 2;
+    else if (p->alt && p->base == 8)
+        n--;
+
+    /* Fill with space to align to the right, before alternate or sign */
+    if (!p->lz && !p->align_left) {
+        while (n-- > 0)
+            putf(putp, ' ');
+    }
+
+    /* print sign */
+    if (p->sign)
+        putf(putp, p->sign);
+
+    /* Alternate */
+    if (p->alt && p->base == 16) {
+        putf(putp, '0');
+        putf(putp, (p->uc ? 'X' : 'x'));
+    } else if (p->alt && p->base == 8) {
+        putf(putp, '0');
+    }
+
+    /* Fill with zeros, after alternate or sign */
+    if (p->lz) {
+        while (n-- > 0)
+            putf(putp, '0');
+    }
+
+    /* Put actual buffer */
+    bf = p->bf;
+    while ((ch = *bf++))
+        putf(putp, ch);
+
+    /* Fill with space to align to the left, after string */
+    if (!p->lz && p->align_left) {
+        while (n-- > 0)
+            putf(putp, ' ');
     }
 }
 
-int atoi(const char *str)
+void k_format(void *putp, putcf putf, const char *fmt, va_list va)
 {
-	int i = 0, val = 0;
-	bool negate = false;
-	if (str[i] == '-') {
-		negate = true;
-		i++;
-	}
-	for (; str[i]; i++)
-		val = val * 10 + (str[i] - '0');
-	return negate ? -val : val;
+    struct param p;
+    char bf[23];  /* long = 64b on some architectures */
+    char ch;
+    p.bf = bf;
+
+    while ((ch = *(fmt++))) {
+        if (ch != '%') {
+            putf(putp, ch);
+        } else {
+            char lng = 0;  /* 1 for long, 2 for long long */
+            /* Init parameter struct */
+            p.lz = 0;
+            p.alt = 0;
+            p.width = 0;
+            p.align_left = 0;
+            p.sign = 0;
+
+            /* Flags */
+            while ((ch = *(fmt++))) {
+                switch (ch) {
+                case '-':
+                    p.align_left = 1;
+                    continue;
+                case '0':
+                    p.lz = 1;
+                    continue;
+                case '#':
+                    p.alt = 1;
+                    continue;
+                default:
+                    break;
+                }
+                break;
+            }
+
+            /* Width */
+            if (ch >= '0' && ch <= '9') {
+                ch = a2u(ch, &fmt, 10, &(p.width));
+            }
+
+            /* We accept 'x.y' format but don't support it completely:
+             * we ignore the 'y' digit => this ignores 0-fill
+             * size and makes it == width (ie. 'x') */
+            if (ch == '.') {
+              p.lz = 1;  /* zero-padding */
+              /* ignore actual 0-fill size: */
+              do {
+                ch = *(fmt++);
+              } while ((ch >= '0') && (ch <= '9'));
+            }
+
+
+            if (ch == 'z') {
+                ch = *(fmt++);
+                if (sizeof(usize) == sizeof(unsigned long int))
+                    lng = 1;
+                else if (sizeof(usize) == sizeof(unsigned long long int))
+                    lng = 2;
+            } else
+
+            if (ch == 'l') {
+                ch = *(fmt++);
+                lng = 1;
+                if (ch == 'l') {
+                  ch = *(fmt++);
+                  lng = 2;
+                }
+            }
+            switch (ch) {
+            case 0:
+                goto abort;
+            case 'u':
+                p.base = 10;
+
+                if (2 == lng)
+                    ulli2a(va_arg(va, unsigned long long int), &p);
+                else
+                  if (1 == lng)
+                    uli2a(va_arg(va, unsigned long int), &p);
+                else
+                    ui2a(va_arg(va, unsigned int), &p);
+                putchw(putp, putf, &p);
+                break;
+            case 'd':
+            case 'i':
+                p.base = 10;
+
+                if (2 == lng)
+                    lli2a(va_arg(va, long long int), &p);
+                else
+                  if (1 == lng)
+                    li2a(va_arg(va, long int), &p);
+                else
+                    i2a(va_arg(va, int), &p);
+                putchw(putp, putf, &p);
+                break;
+            case 'p':
+                p.alt = 1;
+                lng = 2;
+                /* fall through */
+            case 'x':
+            case 'X':
+                p.base = 16;
+                p.uc = (ch == 'X')?1:0;
+
+                if (2 == lng)
+                    ulli2a(va_arg(va, unsigned long long int), &p);
+                else
+                  if (1 == lng)
+                    uli2a(va_arg(va, unsigned long int), &p);
+                else
+                    ui2a(va_arg(va, unsigned int), &p);
+                putchw(putp, putf, &p);
+                break;
+            case 'o':
+                p.base = 8;
+                ui2a(va_arg(va, unsigned int), &p);
+                putchw(putp, putf, &p);
+                break;
+            case 'c':
+                putf(putp, (char)(va_arg(va, int)));
+                break;
+            case 's':
+                p.bf = va_arg(va, char *);
+                putchw(putp, putf, &p);
+                p.bf = bf;
+                break;
+            case '%':
+                putf(putp, ch);
+            default:
+                break;
+            }
+        }
+    }
+ abort:;
+}
+
+
+
+struct _vsnprintf_putcf_data
+{
+  usize dest_capacity;
+  char *dest;
+  usize num_chars;
+};
+
+static void _vsnprintf_putcf(void *p, char c)
+{
+  struct _vsnprintf_putcf_data *data = (struct _vsnprintf_putcf_data*)p;
+  if (data->num_chars < data->dest_capacity)
+    data->dest[data->num_chars] = c;
+  data->num_chars ++;
+}
+
+int k_vsnprintf(char *str, usize size, const char *format, va_list ap)
+{
+  struct _vsnprintf_putcf_data data;
+
+  if (size < 1)
+    return 0;
+
+  data.dest = str;
+  data.dest_capacity = size-1;
+  data.num_chars = 0;
+  k_format(&data, _vsnprintf_putcf, format, ap);
+
+  if (data.num_chars < data.dest_capacity)
+    data.dest[data.num_chars] = '\0';
+  else
+    data.dest[data.dest_capacity] = '\0';
+
+  return data.num_chars;
+}
+
+int k_snprintf(char *str, usize size, const char *format, ...)
+{
+  va_list ap;
+  int retval;
+
+  va_start(ap, format);
+  retval = k_vsnprintf(str, size, format, ap);
+  va_end(ap);
+  return retval;
+}
+
+struct _vsprintf_putcf_data
+{
+  char *dest;
+  usize num_chars;
+};
+
+static void _vsprintf_putcf(void *p, char c)
+{
+  struct _vsprintf_putcf_data *data = (struct _vsprintf_putcf_data*)p;
+  data->dest[data->num_chars++] = c;
+}
+
+int k_vsprintf(char *str, const char *format, va_list ap)
+{
+  struct _vsprintf_putcf_data data;
+  data.dest = str;
+  data.num_chars = 0;
+  k_format(&data, _vsprintf_putcf, format, ap);
+  data.dest[data.num_chars] = '\0';
+  return data.num_chars;
+}
+
+int k_sprintf(char *str, const char *format, ...)
+{
+  va_list ap;
+  int retval;
+
+  va_start(ap, format);
+  retval = k_vsprintf(str, format, ap);
+  va_end(ap);
+  return retval;
+}
+
+
+int k_printf(const char* fmt, ...)
+{
+    va_list ap;
+    int retval;
+    char buffer[1024];
+    va_start(ap, fmt);
+    retval = k_vsprintf(buffer, fmt, ap);
+    va_end(ap);
+    for (int i = 0; i < retval; i++)
+        put_c(buffer[i]);
+    return retval;
 }

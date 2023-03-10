@@ -6,7 +6,10 @@
 
 
 void handle_trap() {
+    usize *regs;
+    regs = (void*)(REG_READ_G(a0));
     usize scause = REG_READ_P(scause), sepc = REG_READ_P(sepc);
+    usize stval = REG_READ_P(stval);
     u32 exception_type = scause >> (64 - 1);
     usize exception_code = scause & (-1 >> 1);
     // Interrupt
@@ -95,7 +98,27 @@ void handle_trap() {
             break;
         }
     }
-    pr_err(" address: %p \n", (void*)sepc);
+    pr_err("\n");
+    pr_err("#0: %p \n", (void*)sepc);
+    pr_err("stval: %x\n", stval);
+    pr_err("code: ");
+    for (i32 x = -4; x < 4; x++)
+    {
+        char code = *((char*)sepc+x);
+        pr_err("%02x ", code);
+    }
+    pr_err("\n");
+    pr_err("\n");
+    for (usize i = 1; i < 32; i+=3)
+    {
+      pr_err("x%02d = %012p ", i, regs[i]);
+      if (i < 31)
+      pr_err("x%02d = %012p x%02d = %012p\n", i+1, regs[i+1], i+2, regs[i+2]);
+      
+    }
+    pr_err("\n");
+    pr_err("\n");
+    
 }
 
 void switch_to_s_mode(){
