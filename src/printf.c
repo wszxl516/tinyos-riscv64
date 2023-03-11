@@ -198,7 +198,8 @@ void k_format(void *putp, putcf putf, const char *fmt, va_list va)
         if (ch != '%') {
             putf(putp, ch);
         } else {
-            char lng = 0;  /* 1 for long, 2 for long long */
+            char lng = 0;  
+            /* 1 for long, 2 for long long */
             /* Init parameter struct */
             p.lz = 0;
             p.alt = 0;
@@ -233,7 +234,8 @@ void k_format(void *putp, putcf putf, const char *fmt, va_list va)
              * we ignore the 'y' digit => this ignores 0-fill
              * size and makes it == width (ie. 'x') */
             if (ch == '.') {
-              p.lz = 1;  /* zero-padding */
+              p.lz = 1;  
+              /* zero-padding */
               /* ignore actual 0-fill size: */
               do {
                 ch = *(fmt++);
@@ -272,10 +274,22 @@ void k_format(void *putp, putcf putf, const char *fmt, va_list va)
                     ui2a(va_arg(va, unsigned int), &p);
                 putchw(putp, putf, &p);
                 break;
+            case 'f':
+            case 'F':
+                p.base = 10;
+                double val = va_arg(va, double);
+                lli2a((usize) val, &p);
+                putchw(putp, putf, &p);
+                p.width = 0;
+                p.bf[0] = '.';
+                p.bf[1] = 0;
+                putchw(putp, putf, &p);
+                lli2a((val - (double)((usize) val)) * 100, &p);
+                putchw(putp, putf, &p);
+                break;
             case 'd':
             case 'i':
                 p.base = 10;
-
                 if (2 == lng)
                     lli2a(va_arg(va, long long int), &p);
                 else

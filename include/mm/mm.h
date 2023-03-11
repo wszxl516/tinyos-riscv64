@@ -6,7 +6,7 @@ typedef void (ld_script_pointer_t)();
 extern ld_script_pointer_t stack_top, stack_bottom;
 extern ld_script_pointer_t bss_start, bss_end;
 extern ld_script_pointer_t heap_start, text_start;
-
+extern ld_script_pointer_t symtab_start;
 
 typedef usize entry_t __USED__;
 
@@ -33,7 +33,7 @@ typedef usize entry_t __USED__;
 	pr_info("bss: 0x%x - 0x%x\n",bss_start, bss_end); \
 	double kernel_size = (usize)heap_start - (usize)text_start; \
 	usize stack_size = (usize)stack_top - (usize)stack_bottom; \
-	pr_info("stack 0x%x - 0x%x, size: %u bytes, %f%\n", stack_bottom, stack_top ,stack_size, (stack_size/kernel_size)*100); \
+	pr_info("stack 0x%x - 0x%x, size: %u bytes, %f%%\n", stack_bottom, stack_top ,stack_size, (stack_size/kernel_size)*100); \
 	pr_info("#########################################################\n"); \
 } while (0);
 

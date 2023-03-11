@@ -29,6 +29,6 @@ SECTIONS {
 		PROVIDE(stack_top = .);
 		. += 4096;
 	}
-  
+	
 	PROVIDE(heap_start = .);
 }
