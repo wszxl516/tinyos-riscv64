@@ -8,10 +8,14 @@ trap_handler:
         SAVE_G_REG 1, 31
         mv s0, sp
         mv a0, sp
+        mv a1, ra
         call handle_trap
+        # exception pc + 4
+        csrr t0, sepc
+        addi t0, t0, 4
+        csrw sepc, t0
         # restore registers.
         mv sp, s0
         REST_G_REG 1, 31
         addi sp, sp, REG_STACK_SIZE
-        # csrr ra, sepc
         sret

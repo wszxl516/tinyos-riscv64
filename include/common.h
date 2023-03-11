@@ -15,6 +15,15 @@
 #define GET_BIT(data, bit_sht) ((data >> bit_sht)&1)
 
 
+typedef struct NO_OPTIMIZATION_ALIGN
+{
+ usize regs[31];
+ usize ra;
+ usize sepc;
+ usize stval;
+}regs_t;
+
+
 static inline void memset(void *ptr, u32 size, u8 value)
 {
     for (u32 i = 0; i < size; i++)

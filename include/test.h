@@ -29,4 +29,13 @@ static inline void heap_test()
         HEAP_TEST(0x100000 * i);
 }
 
+
+void exception_test()
+{
+    pr_notice("Test Load access fault.\n");
+    char a __USED__= *((char*)(1<<64));
+    pr_notice("Test Environment call.\n");
+	__asm__ volatile("ecall");
+}
+
 #endif //__TEST_H__

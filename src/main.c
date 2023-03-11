@@ -4,11 +4,10 @@
 #include "printf.h"
 #include "board.h"
 #include "mm.h"
-#include "cpu.h"
+#include "riscv.h"
 #ifdef __RUN_TEST__
 	#include "test.h"
 #endif //__RUN_TEST__
-
 
 void main(void) {
 	CLEAR_BSS();
@@ -16,6 +15,7 @@ void main(void) {
 #ifdef __RUN_TEST__
 	#include "test.h"
 	heap_test();
+	exception_test();
 	REBOOT();
 	SHUTDONW();
 #endif //__RUN_TEST__
