@@ -71,7 +71,7 @@ test_pre: clean
 test: test_pre run
 
 dump_dtb:
-	@qemu-system-riscv64 -machine virt -machine dumpdtb=$(OUT_DIR)/riscv64-virt.dtb > /dev/null 2>&1
+	@qemu-system-riscv64 -smp 2 -machine virt -cpu rv64 -machine dumpdtb=$(OUT_DIR)/riscv64-virt.dtb > /dev/null 2>&1
 	@dtc -O dts -o $(OUT_DIR)/riscv64-virt.dts  $(OUT_DIR)/riscv64-virt.dtb > /dev/null 2>&1
 	@rm $(OUT_DIR)/riscv64-virt.dtb -f
 	@echo "$(OUT_DIR)/riscv64-virt.dts dumped"
