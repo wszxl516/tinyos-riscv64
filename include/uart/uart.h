@@ -27,8 +27,8 @@ typedef struct OPTIMIZATION_ALIGN(1){
             REG u8 scratch_pad;
 } ns16550a;
 
-static REG ns16550a *UART = (ns16550a*)QEMU_UART_ADDR;
-STATIC_INIT_SPIN_LOCK(uart_lock);
+static SECTION(".device") REG ns16550a *UART = (ns16550a*)QEMU_UART_ADDR;
+STATIC_INIT_SPIN_LOCK(SECTION(".device") uart_lock) ;
 
 #define DATA_READY() (GET_BIT(UART->line_status, STATUS_DATA_READY_SHT) == 1)
 #define THR_EMPTY()  (GET_BIT(UART->line_status, STATUS_THR_EMPTY_SHT) == 1)
@@ -67,4 +67,15 @@ static inline void put_c(char c)
     spin_unlock(&uart_lock);
 } 
 
+static inline void puts(char *buffer)
+{
+    while (!THR_EMPTY());
+    spin_lock(&uart_lock);
+    while (*buffer)
+    {
+        UART->data = *buffer; 
+        buffer ++;
+    }
+    spin_unlock(&uart_lock);
+}
 #endif//__UART_H__

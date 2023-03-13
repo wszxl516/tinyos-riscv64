@@ -10,8 +10,8 @@
 
 
 #define REG volatile
-#define REG_WRITE(addr, type, value)      (*(type*)addr = value)
-#define REG_READ(addr, type, value)       (*(type*)addr)
+#define REG_WRITE(addr, type, value)      ((*(REG type*)(addr)) = value)
+#define REG_READ(addr, type)       (*(REG type*)(addr))
 #define REG_WRITE32(addr, value) 	REG_WRITE(addr, u32, value)
 #define REG_READ32(addr) 	        REG_READ(addr, u32)
 #define GET_BIT(data, bit_sht) ((data >> bit_sht)&1)

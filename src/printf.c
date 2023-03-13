@@ -1,5 +1,4 @@
 #include "printf.h"
-#include "uart.h"
 
 #ifdef __GNUC__
 # define _k_GCC_NO_INLINE_  __attribute__ ((noinline))
@@ -430,7 +429,6 @@ int k_printf(const char* fmt, ...)
     va_start(ap, fmt);
     retval = k_vsprintf(buffer, fmt, ap);
     va_end(ap);
-    for (int i = 0; i < retval; i++)
-        put_c(buffer[i]);
+    puts(buffer);
     return retval;
 }

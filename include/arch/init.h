@@ -4,17 +4,20 @@
 #include "config.h"
 #include "riscv.h"
 
-typedef FUNC_NORETURN void (*arch_cpustart_t)();
+typedef FUNC_NORETURN void (*cpustart_t)();
 
 typedef struct{
     u32 hartid;
 	u32 bit;
 	usize extensions;
+	usize vendor_id;
+	usize machine_id;
+	usize impl_id;
 	bool online;
-    arch_cpustart_t start_fn;
+    cpustart_t start_fn;
 } cpu;
 
-typedef struct z_kernel {
+typedef struct{
 	cpu cpus[SMP_CORE_NUM];
 } kernel_t;
 

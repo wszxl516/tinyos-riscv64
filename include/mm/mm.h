@@ -25,7 +25,6 @@ typedef usize entry_t __USED__;
 #define PRINT_KERNEL_INFO()do \
 {\
 	pr_info("#########################################################\n"); \
-	pr_info("Vendor ID: %x.%x.%x\n", vendor_id(), machine_id(), machine_impl_id()); \
 	dump_cpu_info();	\
 	pr_info("kernel size: 0x%x\n", heap_start - text_start); \
 	pr_info("bss: 0x%x - 0x%x\n",bss_start, bss_end); \

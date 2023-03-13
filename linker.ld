@@ -22,6 +22,9 @@ SECTIONS {
 	.data : ALIGN(4K) {
 		*(.data);
 	}
+	.device : ALIGN(4K) {
+		*(.device);
+	}
 	.stack : ALIGN(4k) {
 		. += 4096;
 		PROVIDE(stack_bottom = .);

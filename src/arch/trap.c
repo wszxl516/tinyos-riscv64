@@ -125,12 +125,12 @@ void handle_trap() {
     regs_t regs;
     SETUP_GENERIC_REG(REG_READ_G(a0), regs.regs);
     regs.ra =  REG_READ_G(a1);
-    regs.sepc = REG_READ_P(sepc);
-    regs.stval = REG_READ_P(stval);
+    regs.sepc = REG_READ_P(mepc);
+    regs.stval = REG_READ_P(mtval);
 
-    usize scause = REG_READ_P(scause);
+    usize scause = REG_READ_P(mcause);
     u32 exception_type = scause >> (64 - 1);
-    usize exception_code = scause & (-1 >> 1);
+    usize exception_code = scause << 1 >> 1;
     if (exception_type)
     // Interrupt
         interrupt_handler(exception_code, &regs);

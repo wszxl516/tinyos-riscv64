@@ -21,4 +21,8 @@
 
 //smp cpu cores
 #define SMP_CORE_NUM       2
+
+//clint
+#define CLINT_BASE 0x2000000
+
 #endif //__CONFIG_H__

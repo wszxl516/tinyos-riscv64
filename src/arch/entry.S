@@ -24,7 +24,6 @@ first_core:
 	/* Setup stack */
 	la sp, stack_top
 	call   cpu_init
-	call   start
 
 other_core:
 	/* Set up stack */

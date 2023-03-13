@@ -2,6 +2,8 @@
 #define __TEST_H__
 #include "heap.h"
 #include "printf.h"
+#include "board.h"
+#include "timer.h"
 
 #define HEAP_TEST(size)  \
 do{ \
@@ -38,4 +40,10 @@ void exception_test()
 	__asm__ volatile("ecall");
 }
 
+
+void time_test(){
+    time_t time;
+	get_time(&time);
+	pr_info("sec: %u, nsec: %u\n", time.sec, time.nsec);
+}
 #endif //__TEST_H__

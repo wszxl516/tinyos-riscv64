@@ -3,6 +3,7 @@
 #include "trap.h"
 #include "riscv.h"
 #include "printf.h"
+#include "timer.h"
 
 void switch_to_s_mode(){
     pr_notice("Entering S-mode.\n");
@@ -17,10 +18,6 @@ void FUNC_NORETURN start(){
     //mstatus.MIE = Supervisor
     REG_UPDATE_P(mstatus, (0b1 << 13) | (0b1 << 11));
     REG_UPDATE_P(sstatus, (0b1 << 13) | (0b1 << 11));
-    pr_notice(BOOT_LOGO "\n");
-    #ifdef __MEM_INFO__
-        PRINT_KERNEL_INFO();
-    #endif //__MEM_INFO__
     // Reset satp  disable mmu
     set_mmu(MMU_BARE, 0, 0);
     // delegate all interrupts and exceptions to supervisor mode.
@@ -38,6 +35,11 @@ void FUNC_NORETURN start(){
     // main();
     REG_WRITE_P(pmpcfg0, PMP_R | PMP_W | PMP_X | PMP_NAPOT);
     REG_WRITE_P(pmpaddr0, U64_MAX >> 10);
+    // setup timer
+    setup_timer();
+    // enable all interrupt and exception
+    REG_WRITE_P(mie,  0xfff);
+    REG_WRITE_P(sie,  0xfff);
     switch_to_s_mode();
-    while (1) WFI_IDLE();
+    while (true) WFI_IDLE();
 }
