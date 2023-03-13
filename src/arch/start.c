@@ -9,7 +9,7 @@ void switch_to_s_mode(){
     M_MODE_RET();
 }
 
-void start(){
+void FUNC_NORETURN start(){
     //set thread pointer to 0
     REG_WRITE_G(tp, 0);
     // enable fpu
@@ -39,4 +39,5 @@ void start(){
     REG_WRITE_P(pmpcfg0, PMP_R | PMP_W | PMP_X | PMP_NAPOT);
     REG_WRITE_P(pmpaddr0, U64_MAX >> 10);
     switch_to_s_mode();
+    while (1) WFI_IDLE();
 }

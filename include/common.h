@@ -5,7 +5,9 @@
 #define OPTIMIZATION_ALIGN(n)    __attribute__ ((aligned(n)))
 #define SECTION(n)               __attribute__ ((section(n)))
 #define __USED__                 __attribute__((used))
-#define __UNUSED__                 __attribute__((unused))
+#define __UNUSED__               __attribute__((unused))
+#define FUNC_NORETURN            __attribute__((__noreturn__))
+
 
 #define REG volatile
 #define REG_WRITE(addr, type, value)      (*(type*)addr = value)

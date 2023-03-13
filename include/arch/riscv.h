@@ -89,14 +89,13 @@ static inline usize machine_impl_id()
 24 Y Reserved
 25 Z Reserved
 */
-static inline void machine_extensions(char *buffer)
+static inline void machine_extensions_parse(usize len, char *buffer)
 {
-	usize xlen = REG_READ_P(misa); 
 	for (usize i = 0; i < 26; i++)
 	{
 		if(i == 7 || i == 10 || i == 14 || i == 17 || i == 22 || i == 24|| i == 25 )
 			continue;
-		buffer[i] = (xlen & ( 1<<i )) >> i ? 'A' + i: '\1';
+		buffer[i] = (len & ( 1<<i )) >> i ? 'A' + i: '\1';
 	}
 }
 
@@ -111,4 +110,6 @@ static inline void machine_extensions(char *buffer)
 static inline void set_mmu(usize mode, usize asid , usize address){
 	REG_WRITE_P(satp, mode | asid | address);
 }
+
+#define WFI_IDLE() __asm__ volatile("wfi")
 #endif //__CPU_H__

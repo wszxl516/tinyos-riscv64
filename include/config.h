@@ -18,4 +18,7 @@
 //reboot
 #define SYSCON_REBOOT      0x100000
 #define REBOOT_CODE        0x7777
+
+//smp cpu cores
+#define SMP_CORE_NUM       2
 #endif //__CONFIG_H__

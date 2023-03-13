@@ -2,6 +2,7 @@
 #define __MM_H__
 #include "common.h"
 #include "config.h"
+#include "init.h"
 typedef void (ld_script_pointer_t)();
 extern ld_script_pointer_t stack_top, stack_bottom;
 extern ld_script_pointer_t bss_start, bss_end;
@@ -24,16 +25,13 @@ typedef usize entry_t __USED__;
 #define PRINT_KERNEL_INFO()do \
 {\
 	pr_info("#########################################################\n"); \
-	pr_info("CPU: %x.%x.%x\n", vendor_id(), machine_id(), machine_impl_id()); \
-	char extensions[26] = {0}; \
-	machine_extensions(extensions); \
-	pr_info("CPU Extensions: %s\n", extensions); \
-	pr_info("riscv%u, Core: %d\n", machine_bits(), current_core()); \
+	pr_info("Vendor ID: %x.%x.%x\n", vendor_id(), machine_id(), machine_impl_id()); \
+	dump_cpu_info();	\
 	pr_info("kernel size: 0x%x\n", heap_start - text_start); \
 	pr_info("bss: 0x%x - 0x%x\n",bss_start, bss_end); \
 	double kernel_size = (usize)heap_start - (usize)text_start; \
 	usize stack_size = (usize)stack_top - (usize)stack_bottom; \
-	pr_info("stack 0x%x - 0x%x, size: %u bytes, %f%%\n", stack_bottom, stack_top ,stack_size, (stack_size/kernel_size)*100); \
+	pr_info("stack 0x%x - 0x%x, size: %x, bytes %f%%\n", stack_bottom, stack_top ,stack_size, (stack_size/kernel_size)*100); \
 	pr_info("#########################################################\n"); \
 } while (0);
 

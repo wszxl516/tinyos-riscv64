@@ -25,7 +25,8 @@ SECTIONS {
 	.stack : ALIGN(4k) {
 		. += 4096;
 		PROVIDE(stack_bottom = .);
-		. += 4096 * 4;
+		/* 2 cores 2 stack */
+		. += 4096 * 4 * 2;
 		PROVIDE(stack_top = .);
 		. += 4096;
 	}

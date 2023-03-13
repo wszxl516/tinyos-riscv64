@@ -11,4 +11,5 @@ typedef enum{
     PMP_NAPOT = (3L << 3)
 }pmp_t;
 
+void FUNC_NORETURN start();
 #endif //__START_H__
