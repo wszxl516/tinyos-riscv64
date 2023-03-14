@@ -1,4 +1,5 @@
 #include "trap.h"
+#include "timer.h"
 #include "printf.h"
 
 //riscv-privileged-20211203-2.pdf
@@ -32,7 +33,7 @@ void dump_stack(regs_t *regs){
 }
 
 static void interrupt_handler(usize exception_code, regs_t *regs){
-        pr_notice("%u\n", regs->regs[10]);
+        pr_notice("\n", regs->regs[10]);
         switch (exception_code)
         {
         case SUPERVISOR_SOFTWARE_INTERRUPT:
@@ -122,13 +123,14 @@ static void exception_handler(usize exception_code, regs_t *regs){
 
 
 void handle_trap() {
+    disable_all_interruput_s();
     regs_t regs;
     SETUP_GENERIC_REG(REG_READ_G(a0), regs.regs);
     regs.ra =  REG_READ_G(a1);
-    regs.sepc = REG_READ_P(mepc);
-    regs.stval = REG_READ_P(mtval);
+    regs.sepc = REG_READ_P(sepc);
+    regs.stval = REG_READ_P(stval);
 
-    usize scause = REG_READ_P(mcause);
+    usize scause = REG_READ_P(scause);
     u32 exception_type = scause >> (64 - 1);
     usize exception_code = scause << 1 >> 1;
     if (exception_type)
@@ -137,4 +139,6 @@ void handle_trap() {
     else
     //Exception
         exception_handler(exception_code, &regs);
+    pr_err("\n");
+    enable_all_interruput_s();
 }

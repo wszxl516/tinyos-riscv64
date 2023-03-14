@@ -1,6 +1,7 @@
 #include "timer.h"
 #include "riscv.h"
-
+#include "trap.h"
+#include "printf.h"
 
 void get_time(time_t *time){
 
@@ -20,5 +21,10 @@ void set_time(time_t *time){
 
 
 void setup_timer(){
-    REG_WRITE(CLINT_BASE + MTIME_CMP_OFFSET, u64, REG_READ(CLINT_BASE + MTIME_OFFSET, u64) + 0xffffff);
+    disable_all_interruput_m();
+    time_t time;
+    get_time(&time);
+    pr_info("timer: %u.%u \n", time.sec, time.nsec);
+    REG_WRITE(CLINT_BASE + MTIME_CMP_OFFSET, u64, REG_READ(CLINT_BASE + MTIME_OFFSET, u64) + TIMER_A_SEC);
+    enable_all_interruput_m();
 }

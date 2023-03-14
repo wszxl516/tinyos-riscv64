@@ -4,7 +4,7 @@
 #include "riscv.h"
 
 extern void trap_handler();
-
+extern void timer_handler();
 typedef enum{
     //1 0 RESERVED
     SUPERVISOR_SOFTWARE_INTERRUPT = 1,

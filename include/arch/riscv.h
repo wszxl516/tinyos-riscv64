@@ -111,5 +111,28 @@ static inline void set_mmu(usize mode, usize asid , usize address){
 	REG_WRITE_P(satp, mode | asid | address);
 }
 
+
+static inline void enable_all_interruput_m()
+{
+    REG_WRITE_P(mie,  0xfff);
+}
+
+static inline void disable_all_interruput_m()
+{
+    REG_WRITE_P(mie,  0);
+}
+
+
+static inline void enable_all_interruput_s()
+{
+    REG_WRITE_P(sie,  0xfff);
+}
+
+
+static inline void disable_all_interruput_s()
+{
+    REG_WRITE_P(sie,  0);
+}
+
 #define WFI_IDLE() __asm__ volatile("wfi")
 #endif //__CPU_H__

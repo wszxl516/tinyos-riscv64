@@ -26,7 +26,7 @@ void FUNC_NORETURN start(){
     // keep each CPU's hartid in its tp register, for cpuid().
     REG_WRITE_G(tp, REG_READ_P(mhartid));
     // set trap handler
-    REG_WRITE_P(mtvec, (usize)trap_handler);
+    REG_WRITE_P(mtvec, (usize)timer_handler);
     REG_WRITE_P(stvec, (usize)trap_handler);
     /*machine mode exception return pointer*/
     REG_WRITE_P(mepc, (usize)main);
@@ -38,8 +38,8 @@ void FUNC_NORETURN start(){
     // setup timer
     setup_timer();
     // enable all interrupt and exception
-    REG_WRITE_P(mie,  0xfff);
-    REG_WRITE_P(sie,  0xfff);
+    enable_all_interruput_s();
+    enable_all_interruput_m();
     switch_to_s_mode();
     while (true) WFI_IDLE();
 }

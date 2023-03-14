@@ -44,6 +44,6 @@ void exception_test()
 void time_test(){
     time_t time;
 	get_time(&time);
-	pr_info("sec: %u, nsec: %u\n", time.sec, time.nsec);
+	pr_notice("sec: %u, nsec: %u\n", time.sec, time.nsec);
 }
 #endif //__TEST_H__

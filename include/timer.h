@@ -12,7 +12,7 @@
 //https://github.com/pulp-platform/clint
 #define MTIME_OFFSET 0xbff8
 #define MTIME_CMP_OFFSET 0x4000
-
+#define TIMER_A_SEC 0xa00000
 typedef struct
 {
     u32 sec;
