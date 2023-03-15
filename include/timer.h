@@ -22,4 +22,6 @@ typedef struct
 void get_time(time_t *time);
 void set_time(time_t *time);
 void setup_timer();
+void disable_timer();
+void enable_timer();
 #endif //__TIMER_H__
