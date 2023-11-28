@@ -2,24 +2,23 @@
 TARGET=kernel.elf
 override PWD=$(shell pwd)
 override SRC_DIR=$(PWD)/src
-override ASM_DIR=$(SRC_DIR)/arch
 CC := riscv64-elf-gcc -march=rv64imafdc -mabi=lp64d
 AS := $(CC)
 EX_CFLAGS := 
 OUT_DIR :=$(PWD)/out
 
 override C_SRCS := $(shell find $(SRC_DIR) -name "*.c")
-override ASM_SRCS := $(shell find $(ASM_DIR) -name "*.S")
+override ASM_SRCS := $(shell find $(SRC_DIR) -name "*.S")
 override INCLUDE := $(foreach dir, $(shell find $(PWD)/include -type d), -I$(dir))
 override HEADERS := $(shell find $(PWD)/include -name "*.h")
 
-override OBJS = $(C_SRCS:$(SRC_DIR)/%.c= $(OUT_DIR)/%.o) $(ASM_SRCS:$(SRC_DIR)/%.c= $(OUT_DIR)/%.o)
+override OBJS = $(C_SRCS:$(SRC_DIR)/%.c= $(OUT_DIR)/%.o) $(ASM_SRCS:$(SRC_DIR)/%.S= $(OUT_DIR)/%.o)
 EX_CFLAGS=
-override CFLAGS  = -g -Wall -Wextra -mcmodel=medany -ffreestanding $(INCLUDE) -D__MEM_INFO__
+override CFLAGS  = -g -Wall -Wextra -mcmodel=medany -ffreestanding $(INCLUDE) -D__MEM_INFO__ -MD
 override LDFLAGS = -T linker.ld -lgcc -nostdlib -g -Wl,--Map=$(OUT_DIR)/kernel.map
 
 define QEMU_ARGS
-	-smp 2 \
+	-smp 1 \
 	-machine virt \
 	-m 128M \
 	-cpu rv64 \
@@ -36,7 +35,7 @@ $(OUT_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	@$(CC) -c -o $@ $< $(CFLAGS) $(EX_CFLAGS)
 
-$(OUT_DIR)/%.o: $(ASM_DIR)/%.S $(HEADERS)
+$(OUT_DIR)/%.o: $(SRC_DIR)/%.S $(HEADERS)
 	@echo [AS] $<
 	@mkdir -p $(dir $@)
 	@$(AS) -c -o $@ $< $(CFLAGS) $(EX_CFLAGS)

@@ -26,13 +26,4 @@ typedef struct NO_OPTIMIZATION_ALIGN
 }regs_t;
 
 
-static inline void memset(void *ptr, u32 size, u8 value)
-{
-    for (u32 i = 0; i < size; i++)
-    {
-        *(char*)ptr = value;
-        ptr ++;
-    }
-    
-}
 #endif //__COMMON_H__

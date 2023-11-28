@@ -36,10 +36,11 @@ void FUNC_NORETURN start(){
     REG_WRITE_P(pmpcfg0, PMP_R | PMP_W | PMP_X | PMP_NAPOT);
     REG_WRITE_P(pmpaddr0, U64_MAX >> 10);
     // setup timer
-    setup_timer();
     // enable all interrupt and exception
+    CLEAR_BSS();
     enable_all_interruput_s();
     enable_all_interruput_m();
+    setup_timer();
     switch_to_s_mode();
     while (true) WFI_IDLE();
 }
