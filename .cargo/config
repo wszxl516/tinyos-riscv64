@@ -1,0 +1,15 @@
+[build]
+target = "riscv64gc-unknown-none-elf"
+
+[target.riscv64gc-unknown-none-elf]
+rustflags = [
+    "-Clink-arg=-Tsrc/linker.ld",
+    "-Ctarget-feature=+a,+zbs,+zba",
+    "-Clink-arg=--Map=os.map",
+    "-Ctarget-cpu=generic-rv64",
+]
+runner = "qemu-system-riscv64 -machine virt -cpu rv64 -smp 1 -m 32M -bios none -chardev stdio,id=ttys0 -serial chardev:ttys0 -monitor tcp::1122,server,nowait -nographic -kernel"
+
+[unstable]
+mtime-on-use = true
+build-std = ["core", "alloc"]
