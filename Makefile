@@ -1,80 +1,49 @@
+#!/usr/bin/env bash
 
-TARGET=kernel.elf
-override PWD=$(shell pwd)
-override SRC_DIR=$(PWD)/src
-override ASM_DIR=$(SRC_DIR)/arch
-CC := riscv64-elf-gcc -march=rv64imafdc -mabi=lp64d
-AS := $(CC)
-EX_CFLAGS := 
-OUT_DIR :=$(PWD)/out
-
-override C_SRCS := $(shell find $(SRC_DIR) -name "*.c")
-override ASM_SRCS := $(shell find $(ASM_DIR) -name "*.S")
-override INCLUDE := $(foreach dir, $(shell find $(PWD)/include -type d), -I$(dir))
-override HEADERS := $(shell find $(PWD)/include -name "*.h")
-
-override OBJS = $(C_SRCS:$(SRC_DIR)/%.c= $(OUT_DIR)/%.o) $(ASM_SRCS:$(SRC_DIR)/%.c= $(OUT_DIR)/%.o)
-EX_CFLAGS=
-override CFLAGS  = -g -Wall -Wextra -mcmodel=medany -ffreestanding $(INCLUDE) -D__MEM_INFO__
-override LDFLAGS = -T linker.ld -lgcc -nostdlib -g -Wl,--Map=$(OUT_DIR)/kernel.map
-
+TARGET=tiny-riscv64
+override PWD = $(shell pwd)
+override OUT_DIR :=$(PWD)/target/riscv64gc-unknown-none-elf/debug
+override GDB := rust-gdb
+override QEMU := qemu-system-riscv64
 define QEMU_ARGS
-	-smp 2 \
+	-smp 1 \
 	-machine virt \
-	-m 128M \
+	-m 64M \
 	-cpu rv64 \
 	-bios none \
 	-chardev stdio,id=ttys0 \
 	-serial chardev:ttys0 \
 	-monitor tcp::1122,server,nowait \
 	-nographic \
-	-kernel $(OUT_DIR)/$(TARGET)
+    -device qemu-xhci,id=xhci \
+    -device usb-kbd,bus=xhci.0
 endef
 
-$(OUT_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
-	@echo [CC] $<
-	@mkdir -p $(dir $@)
-	@$(CC) -c -o $@ $< $(CFLAGS) $(EX_CFLAGS)
+define QEMU_ARGS_RUN
+	${QEMU_ARGS} \
+	-kernel $(OUT_DIR)/$(TARGET).bin
+endef
 
-$(OUT_DIR)/%.o: $(ASM_DIR)/%.S $(HEADERS)
-	@echo [AS] $<
-	@mkdir -p $(dir $@)
-	@$(AS) -c -o $@ $< $(CFLAGS) $(EX_CFLAGS)
+all:
+	cargo build
 
-$(TARGET): pre_check $(OBJS) 
-	@echo [LINK] $@
-	@$(CC) -o $(OUT_DIR)/$(TARGET) $(OBJS) $(CFLAGS)  $(LDFLAGS) $(EX_CFLAGS)
+bin: all
+	@rust-objcopy --binary-architecture=riscv64 --strip-all -O binary $(OUT_DIR)/$(TARGET) $(OUT_DIR)/$(TARGET).bin
 
-all:pre_check $(TARGET)
+run: bin
+	@qemu-system-riscv64 $(QEMU_ARGS_RUN)
 
-run: all
-	@qemu-system-riscv64 $(QEMU_ARGS)
-
-pre_check:
-	@if [ ! -f "$$(which riscv64-elf-gcc)" ] || \
-		[ ! -f "$$(which riscv64-elf-gdb)" ] || \
-		[ ! -f "$$(which qemu-system-riscv64)" ];then \
-		echo -ne "\033[91mMust install riscv64-elf-gcc, riscv64-elf-gdb and qemu-system-riscv64!\033[0m\n"; \
-		exit 1; \
-	fi
-	@mkdir -p $(OUT_DIR)
-
-debug: all
-	@/usr/bin/xfce4-terminal -e \
-		'qemu-system-riscv64 $(QEMU_ARGS) -s -S'
-	#@lldb -O "target create $(OUT_DIR)/$(TARGET)" -O "gdb-remote localhost:1234"
-	@riscv64-linux-gnu-gdb $(OUT_DIR)/$(TARGET) -ex "target remote :1234"
-
-test_pre: clean
-	$(eval EX_CFLAGS= -D__RUN_TEST__)
-
-test: test_pre run
+debug: bin
+	/usr/bin/xfce4-terminal -e '$(QEMU) $(QEMU_ARGS_RUN) -s -S'
+	#rust-lldb not working
+	#@rust-lldb -O "target create $(OUT_DIR)/$(TARGET)" -O "gdb-remote localhost:1234"
+	@RUST_GDB=riscv64-linux-gnu-gdb $(GDB) $(OUT_DIR)/$(TARGET) -ex "target remote :1234"
 
 dump_dtb:
-	@qemu-system-riscv64 -smp 2 -machine virt -cpu rv64 -machine dumpdtb=$(OUT_DIR)/riscv64-virt.dtb > /dev/null 2>&1
-	@dtc -O dts -o $(OUT_DIR)/riscv64-virt.dts  $(OUT_DIR)/riscv64-virt.dtb > /dev/null 2>&1
-	@rm $(OUT_DIR)/riscv64-virt.dtb -f
-	@echo "$(OUT_DIR)/riscv64-virt.dts dumped"
+	@$(QEMU) $(QEMU_ARGS) -machine dumpdtb=./riscv64-virt.dtb > /dev/null 2>&1
+	@dtc -O dts -o ./riscv64-virt.dts  ./riscv64-virt.dtb > /dev/null 2>&1
+	@rm ./riscv64-virt.dtb -f
+	@echo "./riscv64-virt.dts dumped"
 
 clean:
-	@rm $(OUT_DIR)/ -rf
+	@cargo clean
