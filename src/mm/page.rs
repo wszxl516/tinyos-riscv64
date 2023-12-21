@@ -2,7 +2,7 @@ use super::address::{PhyAddr, VirtAddr};
 use super::entry::{Entry, PTEFlags};
 use crate::align_down;
 use crate::mm::config::PAGE_SIZE;
-use crate::mm::frame::alloc_page;
+use crate::mm::{page_alloc};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -70,7 +70,7 @@ impl PageTable {
             if entry.is_valid() {
                 page_table = entry.get_page_table();
             } else {
-                let addr = alloc_page().unwrap();
+                let addr = page_alloc(1);
                 unsafe {
                     page_table = &mut *(addr as *mut PageTable);
                 }

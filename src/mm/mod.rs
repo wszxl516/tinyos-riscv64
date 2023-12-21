@@ -1,18 +1,17 @@
 pub mod address;
 pub mod config;
 pub mod entry;
-mod frame;
 pub mod page;
 
 static mut ROOT_PAGE: Option<*mut PageTable> = None;
 
-use crate::config::{FRAME_SIZE, MEM_SIZE};
+use core::alloc::{GlobalAlloc, Layout};
+use crate::config::MEM_SIZE;
 use crate::mm::address::{PhyAddr, VirtAddr};
 use crate::mm::config::{PAGE_SHIFT, PAGE_SIZE};
 use crate::mm::entry::PTEFlags;
-use crate::mm::frame::{alloc_page, init_frame_allocator};
 use crate::mm::page::PageTable;
-use crate::{pr_notice, reg_write_p};
+use crate::{mem_set, pr_notice, reg_write_p};
 use core::arch::asm;
 use linked_list_allocator::LockedHeap;
 
@@ -50,10 +49,27 @@ pub mod ld_script_addr {
 
 #[global_allocator]
 pub static ALLOCATOR: LockedHeap = LockedHeap::empty();
+#[allow(dead_code)]
+pub fn page_alloc(pages: usize) -> usize {
+    let addr = unsafe {
+        ALLOCATOR.alloc(Layout::from_size_align(pages * PAGE_SIZE, PAGE_SIZE).unwrap())
+    };
+    mem_set!(addr, pages * PAGE_SIZE, 0);
+    addr.addr()
+}
 
+#[allow(dead_code)]
+pub fn page_free(start: usize, pages: usize) {
+    unsafe {
+        ALLOCATOR.dealloc(
+            start as *mut u8,
+            Layout::from_size_align(pages * PAGE_SIZE, PAGE_SIZE).unwrap(),
+        )
+    }
+}
 pub fn init_heap() {
-    let mem_size = MEM_SIZE - (*ld_script_addr::KERNEL_SIZE) - FRAME_SIZE;
-    let heap_start = (*ld_script_addr::HEAP_START + FRAME_SIZE) as *mut u8;
+    let mem_size = MEM_SIZE - (*ld_script_addr::KERNEL_SIZE);
+    let heap_start = (*ld_script_addr::HEAP_START) as *mut u8;
     pr_notice!("{:-^50}\n", "");
     pr_notice!("{: ^50} \r\n", "Heap init");
     pr_notice!("{:-^50}\n", "");
@@ -98,9 +114,8 @@ pub fn enable_mmu(root: *mut PageTable) {
 }
 
 pub fn setup_mmu() {
-    init_frame_allocator();
     unsafe {
-        let root_page = PageTable::from_address(alloc_page().unwrap());
+        let root_page = PageTable::from_address(page_alloc(1));
         ROOT_PAGE = Some(root_page);
     }
     pr_notice!("{:-^50} \r\n", "");

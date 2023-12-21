@@ -28,5 +28,4 @@ pub const CPU_CLOCK_HZ: u64 = 10000000;
 pub const TICK_RATE_HZ: u64 = 1000;
 pub const ONE_TICK: u64 = CPU_CLOCK_HZ / TICK_RATE_HZ;
 const ONE_MB: usize = 0x100000;
-pub const FRAME_SIZE: usize = ONE_MB * 2;
 pub const MEM_SIZE: usize = ONE_MB * 64;

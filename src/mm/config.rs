@@ -17,3 +17,10 @@ macro_rules! align_down {
         (($address) & !(crate::mm::config::PAGE_SIZE - 1))
     };
 }
+
+#[macro_export]
+macro_rules! mem_set {
+    ($address: expr, $len: expr, $value: expr) => {
+            unsafe { core::slice::from_raw_parts_mut($address, $len).fill($value) }
+    };
+}
