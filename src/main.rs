@@ -36,6 +36,8 @@ pub fn kernel_main() -> ! {
     dump_features();
     mm::init_heap();
     mm::setup_mmu();
+    device::pci::init_pci();
+    device::pci::find_virt();
     task::init_task();
     enable_irq_s();
     loop {}

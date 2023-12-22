@@ -121,6 +121,15 @@ pub fn setup_mmu() {
     pr_notice!("{:-^50} \r\n", "");
     pr_notice!("{: ^50} \r\n", "Memory Map");
     //uart
+    let va = VirtAddr::new(crate::config::PCI_CONFIG_START);
+    let pa = PhyAddr::new(crate::config::PCI_CONFIG_START);
+    map(va, pa, PAGE_SIZE * 32, PTEFlags::RW, "pci config");
+    //uart
+    let va = VirtAddr::new(crate::config::PCI_MEM_START);
+    let pa = PhyAddr::new(crate::config::PCI_MEM_START);
+    map(va, pa, PAGE_SIZE * 16, PTEFlags::RW, "pci memory");
+
+    //uart
     let va = VirtAddr::new(crate::config::BASE_UART);
     let pa = PhyAddr::new(crate::config::BASE_UART);
     map(va, pa, PAGE_SIZE, PTEFlags::RW, "uart");

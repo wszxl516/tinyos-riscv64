@@ -1,3 +1,7 @@
 /out
 /.vscode
 /.gdb_history
+/os.map
+/hd.img
+/riscv64-virt.dts
+target
