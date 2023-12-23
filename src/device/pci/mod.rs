@@ -9,7 +9,7 @@ use super::virtio::{VirtioBlkTrans, blk};
 use fdt;
 use pci::PCIBus;
 use crate::{pr_err, pr_notice};
-
+use super::super::common::readable::HumanReadable;
 static mut PCI_BUS: Option<PCIBus> = None;
 
 pub fn init_pci() {
@@ -41,6 +41,7 @@ pub fn find_virt() {
                 Ok(blk) => {
                     let mut buffer = [0u8; 512];
                     blk.read_block(0, &mut buffer).unwrap();
+                    pr_notice!("disk size: {}!\n", (blk.capacity * blk.blk_size).readable(2));
                     if buffer.ends_with(&MBR_MAGIC) {
                         pr_notice!("This is a MBR partition!\n");
                     }

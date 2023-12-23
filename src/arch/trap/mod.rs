@@ -14,8 +14,9 @@ pub fn setup_trap() {
     disable_irq_m();
     //set MPP to 1 (supervisor mode)
     //mstatus.SIE = 1
+    //enable fpu
     reg_clear_bit_p!(mstatus, 0b11 << 11);
-    reg_update_p!(mstatus, 1 << 11 | 1 << 1);
+    reg_update_p!(mstatus, 1 << 13 | 1 << 11 | 1 << 1);
     // Reset satp  disable mmu
     reg_write_p!(satp, 0);
 
