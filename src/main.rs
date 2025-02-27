@@ -1,17 +1,11 @@
 #![no_std]
 #![no_main]
-#![feature(panic_info_message)]
 #![feature(naked_functions)]
-#![feature(stdsimd)]
 #![allow(unreachable_code)]
 #![feature(riscv_ext_intrinsics)]
-#![feature(strict_provenance)]
-#![feature(slice_first_last_chunk)]
-#![feature(asm_const)]
 #![feature(ptr_metadata)]
-#![feature(const_mut_refs)]
-#![feature(new_uninit)]
-
+#![allow(static_mut_refs)]
+#![feature(optimize_attribute)]
 extern crate alloc;
 
 mod arch;

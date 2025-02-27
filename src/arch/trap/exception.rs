@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use super::trap::Regs;
-use crate::{pr_err, reg_read_a};
+use crate::{common::symbol::find_symbol, pr_err, reg_read_a};
 
 #[repr(u32)]
 pub enum Exception {
@@ -36,18 +36,26 @@ impl Exception {
 
 fn dump_stack(regs: &Regs) {
     pr_err!("\n");
-    pr_err!(
-        "call stack: \n\t#1: {:#x} \n\t#0: {:#x} \n",
-        regs.epc,
-        regs.ra
-    );
+    pr_err!("call stack: \n\t#1: {:#x} ", regs.epc);
+    match find_symbol(regs.epc) {
+        Some(sym) => pr_err!("({}+{})\n", sym.name, regs.epc - sym.addr),
+        None => {}
+    }
+    pr_err!("\t#0: {:#x} ", regs.ra);
+    match find_symbol(regs.ra) {
+        Some(sym) => pr_err!("({}+{})\n", sym.name, regs.ra - sym.addr),
+        None => {}
+    }
     pr_err!("tval: {:#x}\n", regs.tval);
-    if regs.epc >= 4 {
+    if regs.epc != 0 {
         pr_err!("code: ");
-
-        for addr in regs.epc - 4..regs.epc + 4 {
-            let code = reg_read_a!(addr, u8);
-            pr_err!("{:02x} ", code);
+        let code = reg_read_a!(regs.epc, u32);
+        pr_err!("{:#04x} ", code);
+    } else {
+        if regs.ra != 0 {
+            pr_err!("code: ");
+            let code = reg_read_a!(regs.ra, u32);
+            pr_err!("{:04x} ", code);
         }
     }
 

@@ -22,7 +22,8 @@
 .macro SAVE_G_REG base
     SAVE_XN 1, \base
     SAVE_XN 2, \base
-    //ignore gp tp
+    SAVE_XN 3, \base
+    SAVE_XN 4, \base
     SAVE_XN 5, \base
     SAVE_XN 6, \base
     SAVE_XN 7, \base

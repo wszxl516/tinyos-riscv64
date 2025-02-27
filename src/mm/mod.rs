@@ -20,30 +20,44 @@ pub mod ld_script_addr {
 
     extern "C" {
         fn heap_start();
+        fn base_addr();
         fn stack_top();
         fn stack_bottom();
         fn bss_start();
-        fn global_pointer();
+        fn bss_end();
         fn text_start();
         fn text_end();
-        fn base_addr();
-        fn frame_start();
         fn ro_start();
+        fn ro_end();
         fn data_start();
+        fn data_end();
+        fn symbols_start();
+        fn symbols_end();
+
     }
     lazy_static! {
         pub static ref HEAP_START: usize = heap_start as usize;
-        pub static ref STACK_TOP: usize = stack_top as usize;
-        pub static ref STACK_BOTTOM: usize = stack_bottom as usize;
-        pub static ref BSS_START: usize = bss_start as usize;
-        pub static ref GLOBAL_POINTER: usize = global_pointer as usize;
+        pub static ref KERNEL_SIZE: usize = heap_start as usize - base_addr as usize;
+        pub static ref BASE_ADDDR: usize = base_addr as usize;
+        pub static ref SYMBOL_START: usize = symbols_start as usize;
+        pub static ref SYMBOL_END: usize = symbols_end as usize;
+
+
         pub static ref TEXT_START: usize = text_start as usize;
         pub static ref TEXT_END: usize = text_end as usize;
-        pub static ref BASE_ADDDR: usize = base_addr as usize;
-        pub static ref FRAME_START: usize = frame_start as usize;
+
+        pub static ref BSS_START: usize = bss_start as usize;
+        pub static ref BSS_END: usize = bss_end as usize;
+
         pub static ref RO_START: usize = ro_start as usize;
+        pub static ref RO_END: usize = ro_end as usize;
+
         pub static ref DATA_START: usize = data_start as usize;
-        pub static ref KERNEL_SIZE: usize = heap_start as usize - base_addr as usize;
+        pub static ref DATA_END: usize = data_end as usize;
+
+        pub static ref STACK_TOP: usize = stack_top as usize;
+        pub static ref STACK_BOTTOM: usize = stack_bottom as usize;
+
     }
 }
 
@@ -140,28 +154,28 @@ pub fn setup_mmu() {
     //clint
     let va = VirtAddr::new(crate::config::CLINT_BASE);
     let pa = PhyAddr::new(crate::config::CLINT_BASE);
-    map(va, pa, PAGE_SIZE, PTEFlags::RW, "clint");
+    map(va, pa, PAGE_SIZE * 16, PTEFlags::RW, "clint");
     //plic
     let va = VirtAddr::new(crate::config::PLIC_BASE);
     let pa = PhyAddr::new(crate::config::PLIC_BASE);
     map(va, pa, 0x600000, PTEFlags::RW, "plic");
     //text
-    let size = *ld_script_addr::BSS_START - *ld_script_addr::TEXT_START;
+    let size = *ld_script_addr::TEXT_END - *ld_script_addr::TEXT_START;
     let va = VirtAddr::new(*ld_script_addr::TEXT_START);
     let pa = PhyAddr::new(*ld_script_addr::TEXT_START);
     map(va, pa, size, PTEFlags::RWX, "text");
     //bss
-    let size = *ld_script_addr::RO_START - *ld_script_addr::BSS_START;
+    let size = *ld_script_addr::BSS_END - *ld_script_addr::BSS_START;
     let va = VirtAddr::new(*ld_script_addr::BSS_START);
     let pa = PhyAddr::new(*ld_script_addr::BSS_START);
     map(va, pa, size, PTEFlags::RW, "bss");
     //rodata
-    let size = *ld_script_addr::DATA_START - *ld_script_addr::RO_START;
+    let size = *ld_script_addr::RO_END - *ld_script_addr::RO_START;
     let va = VirtAddr::new(*ld_script_addr::RO_START);
     let pa = PhyAddr::new(*ld_script_addr::RO_START);
-    map(va, pa, size, PTEFlags::R, "rodata");
+    map(va, pa, size, PTEFlags::RW, "rodata");
     //data
-    let size = *ld_script_addr::STACK_BOTTOM - *ld_script_addr::DATA_START;
+    let size = *ld_script_addr::DATA_END - *ld_script_addr::DATA_START;
     let va = VirtAddr::new(*ld_script_addr::DATA_START);
     let pa = PhyAddr::new(*ld_script_addr::DATA_START);
     map(va, pa, size, PTEFlags::RW, "data");
@@ -170,10 +184,15 @@ pub fn setup_mmu() {
     let va = VirtAddr::new(*ld_script_addr::STACK_BOTTOM);
     let pa = PhyAddr::new(*ld_script_addr::STACK_BOTTOM);
     map(va, pa, size, PTEFlags::RW, "stack");
+    //symbols
+    let size = *ld_script_addr::SYMBOL_END - *ld_script_addr::SYMBOL_START;
+    let va = VirtAddr::new(*ld_script_addr::SYMBOL_START);
+    let pa = PhyAddr::new(*ld_script_addr::SYMBOL_START);
+    map(va, pa, size, PTEFlags::RW, "stack");
     //heap
-    let va = VirtAddr::new(*ld_script_addr::FRAME_START);
-    let pa = PhyAddr::new(*ld_script_addr::FRAME_START);
-    map(va, pa, MEM_SIZE, PTEFlags::RW, "heap");
+    let va = VirtAddr::new(*ld_script_addr::HEAP_START);
+    let pa = PhyAddr::new(*ld_script_addr::HEAP_START);
+    map(va, pa, MEM_SIZE - *ld_script_addr::KERNEL_SIZE, PTEFlags::RW, "heap");
     pr_notice!("{:-^50} \r\n", "");
     pr_notice!("{:-^50} \r\n", "");
     enable_mmu(unsafe { ROOT_PAGE }.unwrap());

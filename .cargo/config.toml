@@ -4,7 +4,7 @@ target = "riscv64gc-unknown-none-elf"
 [target.riscv64gc-unknown-none-elf]
 rustflags = [
     "-Clink-arg=-Tsrc/linker.ld",
-    "-Ctarget-feature=+a,+zbs,+zba",
+    "-Ctarget-feature=+zbs,+zba",
     "-Clink-arg=--Map=os.map",
     "-Ctarget-cpu=generic-rv64",
 ]

@@ -4,4 +4,5 @@
 /os.map
 /hd.img
 /riscv64-virt.dts
-target
+/target
+/symbols.log

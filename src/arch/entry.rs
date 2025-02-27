@@ -1,11 +1,11 @@
-use core::arch::asm;
+use core::arch::naked_asm;
 
 #[allow(named_asm_labels)]
 #[naked]
 #[no_mangle]
 #[link_section = ".init"]
 unsafe extern "C" fn _start() -> ! {
-    asm!(
+    naked_asm!(
     r#"
 	.balign 4
 	.option pic
@@ -28,6 +28,5 @@ loop:
     init = sym crate::arch::cpu::init,
     start = sym crate::arch::trap::setup_trap,
     get_args = sym super::super::device::get_args,
-    options(noreturn),
     )
 }

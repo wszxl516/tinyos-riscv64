@@ -4,37 +4,43 @@ base_addr = 0x80000000;
  
 SECTIONS {
 	. = base_addr;
-	PROVIDE(text_start = .);
 	.text : ALIGN(4K) {
+		PROVIDE(text_start = .);
 		*(.init);
 		*(.text);
-
+		*(.text.*)
+		PROVIDE(text_end = .);
 	}
 	.bss : ALIGN(4K) {
 		PROVIDE(bss_start = .);
 		*(.bss);
+		*(.sbss*)
 		. += 4096;
+		PROVIDE(bss_end = .);
 		PROVIDE(global_pointer = .);
 	}
 	.rodata : ALIGN(4K) {
 		PROVIDE(ro_start = .);
         *(.rodata .rodata.*)
+		PROVIDE(ro_end = .);
 	}
 	.data : ALIGN(4K) {
 		PROVIDE(data_start = .);
 		*(.data);
 		*(.sdata);
 		*(.data*);
+		PROVIDE(data_end = .);
 	}
 	.stack : ALIGN(4k) {
-		. += 4096;
 		PROVIDE(stack_bottom = .);
-		. += 4096 * 2;
+		. += 4096 * 4;
 		PROVIDE(stack_top = .);
-		. += 4096;
 	}
-	.frame : ALIGN(4k) {
-	    PROVIDE(frame_start = .);
-	}
+	.symbols : ALIGN(4k){
+        PROVIDE(symbols_start = .);
+        //256k symbol_table
+        . += 256k;
+        PROVIDE(symbols_end = .);
+    }
 	PROVIDE(heap_start = .);
 }
