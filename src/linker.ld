@@ -38,8 +38,7 @@ SECTIONS {
 	}
 	.symbols : ALIGN(4k){
         PROVIDE(symbols_start = .);
-        //256k symbol_table
-        . += 256k;
+        . += 300k;
         PROVIDE(symbols_end = .);
     }
 	PROVIDE(heap_start = .);

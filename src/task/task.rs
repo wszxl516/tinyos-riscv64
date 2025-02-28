@@ -3,21 +3,36 @@ use crate::common::sleep::sleep_ms;
 use crate::mm::config::PAGE_SIZE;
 use crate::{pr_info, pr_notice};
 use alloc::boxed::Box;
-use core::arch::asm;
+use alloc::vec::Vec;
 use core::fmt::{Display, Formatter};
+use lazy_static::lazy_static;
 
-const STACK_SIZE: usize = PAGE_SIZE / 4;
+const STACK_SIZE: usize = PAGE_SIZE;
 
-type TaskFn = fn() -> !;
+#[derive(Debug, Clone)]
+#[repr(C, align(16))]
+pub struct Stack<const SIZE: usize>(Box<[u8; SIZE]>);
+impl<const SIZE: usize> Stack<SIZE> {
+    pub fn new() -> Self {
+        Self(Box::new([0u8; SIZE]))
+    }
+    pub fn top(&self) -> usize {
+        self.0.as_ptr().addr() + SIZE
+    }
+    pub fn size(&self) -> usize {
+        SIZE
+    }
+}
+type TaskEntry = fn() -> !;
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct Task {
     pub context: Context,
     id: u32,
     pub name: &'static str,
-    func: TaskFn,
-    stack: usize,
+    func: TaskEntry,
+    stack: Stack<STACK_SIZE>,
     stack_size: usize,
 }
 
@@ -26,71 +41,64 @@ impl Display for Task {
         write!(
             f,
             "{}: [fn: {:?} stack: {}, stack size: {}]",
-            self.name, self.func, self.stack, self.stack_size
+            self.name,
+            self.func,
+            self.stack.top(),
+            self.stack_size
         )
     }
 }
 
-static mut TASK_MGR: TaskManager<3> = TaskManager::new();
-
-pub struct TaskManager<const MAX_TASK: usize> {
-    tasks: [Option<Task>; MAX_TASK],
+lazy_static! {
+    static ref TASK_MGR: spin::Mutex<TaskManager> = spin::Mutex::new(TaskManager::new());
+}
+pub struct TaskManager {
+    tasks: Vec<Task>,
     tasks_index: usize,
-    tasks_len: usize,
 }
 
-impl<const MAX_TASK: usize> TaskManager<MAX_TASK> {
-    pub const fn new() -> TaskManager<MAX_TASK> {
+impl TaskManager {
+    pub const fn new() -> TaskManager {
         Self {
-            tasks: [None; MAX_TASK],
+            tasks: Vec::new(),
             tasks_index: 0,
-            tasks_len: 0,
         }
     }
-    pub fn add(&mut self, id: u32, name: &'static str, func: TaskFn) {
+    pub fn add(&mut self, id: u32, name: &'static str, func: TaskEntry) {
+        let stack = Stack::<STACK_SIZE>::new();
         let mut task = Task {
-            context: Context::empty_new(),
+            context: Context::default(),
             id,
             name,
             func,
-            stack: 0,
-            stack_size: 0,
+            stack_size: stack.size(),
+            stack,
         };
-        let stack = Box::leak(Box::new([0u8; STACK_SIZE]));
         task.context.ra = task.func as usize;
-        task.context.sp = stack.as_ptr() as usize + STACK_SIZE;
+        task.context.sp = task.stack.top();
         task.context.pc = task.func as usize;
-        task.stack = stack.as_ptr() as usize;
-        task.stack_size = STACK_SIZE;
-        self.tasks[self.tasks_len] = Some(task);
-        self.tasks_len += 1
+        self.tasks.push(task);
     }
     #[optimize(speed)]
     pub fn switch(&mut self, regs: &mut Context) {
         if self.tasks_index != 0 {
-            if let Some(mut t) = self.tasks[self.tasks_index] {
-                t.context.replace(regs);
-                self.tasks[self.tasks_index].replace(t);
-            }
+            self.tasks[self.tasks_index].context.replace(regs);
         }
         self.tasks_index += 1;
-        if self.tasks_index == self.tasks_len {
+        if self.tasks_index == self.tasks.len() {
             self.tasks_index = 0
         }
-        if let Some(t) = self.tasks[self.tasks_index] {
-            regs.replace(&t.context);
-        }
+        regs.replace(&self.tasks[self.tasks_index].context)
     }
 }
 
 pub fn init_task() {
-    unsafe {
-        TASK_MGR.add(0, "idle", || loop {
-            asm!("wfi")
-        });
-        TASK_MGR.add(1, "demo0", demo0);
-        TASK_MGR.add(2, "demo1", demo1);
-    }
+    let mut mgr = TASK_MGR.lock();
+    mgr.add(0, "idle", || loop {
+        unsafe { core::arch::riscv64::wfi() }
+    });
+    mgr.add(1, "demo0", demo0);
+    mgr.add(2, "demo1", demo1);
     pr_notice!("{:-^50} \r\n", "");
     pr_notice!("finished task init!\n");
     pr_notice!("{:-^50} \r\n", "");
@@ -101,7 +109,7 @@ fn demo1() -> ! {
     loop {
         for x in 0..10 {
             pr_info!("demo1 - {}\n", x);
-            sleep_ms(100);
+            sleep_ms(10);
         }
     }
 }
@@ -110,13 +118,13 @@ fn demo1() -> ! {
 fn demo0() -> ! {
     loop {
         for x in 0..10 {
-            pr_notice!("demo1 - {}\n", x);
-            sleep_ms(100);
+            pr_notice!("demo0 - {}\n", x);
+            sleep_ms(10);
         }
-        // unsafe { asm!("ld t0, 0({tmp})", tmp = in(reg) usize::MAX) }
+        // unsafe { core::arch::asm!("ld t0, 0({tmp})", tmp = in(reg) usize::MAX) }
     }
 }
 #[no_mangle]
 pub fn task_switch(regs: &mut Context) {
-    unsafe { TASK_MGR.switch(regs) }
+    TASK_MGR.lock().switch(regs)
 }

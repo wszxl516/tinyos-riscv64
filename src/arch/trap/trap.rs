@@ -6,8 +6,8 @@ use crate::{get_bits, reg_read_p, reg_write_p};
 use core::arch::global_asm;
 use core::fmt::{Display, Formatter};
 
-pub static mut S_TRAP_FRAMES: Context = Context::empty_new();
-pub static mut M_TRAP_FRAMES: Context = Context::empty_new();
+pub static mut S_TRAP_FRAMES: Context = Context::empty();
+pub static mut M_TRAP_FRAMES: Context = Context::empty();
 
 global_asm!(include_str!("macros.S"), include_str!("trap.S"));
 extern "C" {
@@ -37,8 +37,8 @@ pub fn disable_irq_s() {
 
 pub type Reg = usize;
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[repr(C, align(16))]
+#[derive(Debug, Clone, Default)]
 pub(crate) struct Context {
     pub ra: Reg,
     pub sp: Reg,
@@ -94,7 +94,7 @@ impl Display for Context {
 }
 
 impl Context {
-    pub const fn empty_new() -> Self {
+    pub const fn empty() -> Self {
         Self {
             ra: 0,
             sp: 0,
@@ -134,7 +134,7 @@ impl Context {
         self as *const Self as usize
     }
     pub fn replace(&mut self, data: &Self) {
-        *self = *data;
+        *self = data.clone();
     }
     pub fn array(&self) -> [usize; 32] {
         unsafe { core::mem::transmute_copy(self) }
@@ -172,7 +172,7 @@ impl Trap {
     pub fn new(sp: &mut Context, ra: usize) -> Self {
         Self {
             regs: Regs {
-                context: *sp,
+                context: sp.clone(),
                 ra,
                 epc: reg_read_p!(sepc),
                 tval: reg_read_p!(stval),

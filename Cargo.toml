@@ -10,18 +10,18 @@ arrayvec = { version = "0.7.2", default-features = false }
 bitflags = { version = "2.4.1", features = [] }
 linked_list_allocator = "0.10.5"
 fdt = "0.1.5"
+spin = {version = "0.9.8", default-features = false, features = ["mutex", "spin_mutex"]}
+# [profile.release]
+# opt-level = "z"
+# strip = true
+# lto = "fat"
+# panic = "abort"
+# debug-assertions = false
+# overflow-checks = false
+# codegen-units = 1
 
-[profile.release]
-opt-level = "z"
-strip = true
-lto = "fat"
-panic = "abort"
-debug-assertions = false
-overflow-checks = false
-codegen-units = 1
-
-[profile.dev]
-debug = true
-opt-level = "z"
-codegen-units = 1
-lto = "fat"
+# [profile.dev]
+# debug = true
+# opt-level = "z"
+# codegen-units = 1
+# lto = "fat"

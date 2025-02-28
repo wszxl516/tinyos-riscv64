@@ -73,24 +73,21 @@ impl CPU {
         let mut buffer = [0u8; 26];
         for i in 0..26 {
             //reserved
-            if i == 7 || i == 10 || i == 14 || i == 17 || i == 22 || i == 24 || i == 25 {
+            if [6, 10, 11, 14, 17, 19, 22, 24, 25].contains(&i) {
                 continue;
             }
-            if ((self.feature.extensions & (1 << i)) >> i).eq(&1) {
-                buffer[i] = b'A'.to_ascii_uppercase() + i as u8;
+            if (self.feature.extensions & (1 << i)) >= 1{
+                buffer[i] = b'a' + i as u8;
             } else {
                 buffer[i] = 1;
             }
         }
         pr_notice!("{:-^50} \n", "");
         pr_notice!(
-            "Core: {}, Arch: Riscv{}, \nFlags: {} \n",
+            "Core: {}, Arch: Rv{}-{}, Vendor ID: {:#x}.{:#x}.{:#x}\n",
             self.feature.hart_id,
             self.feature.bit,
-            unsafe { core::str::from_utf8_unchecked(&buffer) }
-        );
-        pr_notice!(
-            "Vendor ID: {:#x}.{:#x}.{:#x}\n",
+            unsafe { core::str::from_utf8_unchecked(&buffer) },
             self.feature.vendor_id,
             self.feature.machine_id,
             self.feature.impl_id
