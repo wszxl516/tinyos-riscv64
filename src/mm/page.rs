@@ -2,17 +2,17 @@ use super::address::{PhyAddr, VirtAddr};
 use super::entry::{Entry, PTEFlags};
 use crate::align_down;
 use crate::mm::config::PAGE_SIZE;
-use crate::mm::{page_alloc};
+use crate::mm::page_alloc;
 
-#[repr(C)]
+#[repr(C, align(4096))]
 #[derive(Debug)]
 pub struct PageTable {
     pub root: [Entry; 512],
 }
 
 impl PageTable {
-    pub const fn from_address(addr: usize) -> *mut Self {
-        addr as *mut Self
+    pub const fn empty() -> Self {
+        Self{root: [Entry::empty(); 512]}
     }
     pub fn map(&mut self, va: VirtAddr, pa: PhyAddr, size: usize, flags: PTEFlags) {
         let mut va_start = VirtAddr::new(align_down!(va.0));

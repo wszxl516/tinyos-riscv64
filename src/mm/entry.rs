@@ -52,6 +52,9 @@ impl Display for Entry {
 }
 
 impl Entry {
+    pub const fn empty() -> Self{
+        Self(0)
+    }
     pub fn get_ppn(&self, index: usize) -> usize {
         assert_eq!(index <= 2, true);
         self.0 >> config::PTE_SHIFT >> ((index - 1) * 9) & (PPN_MASK)

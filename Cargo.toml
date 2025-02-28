@@ -4,24 +4,26 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
+lazy_static = { version = "1.5.0", features = ["spin_no_std"] }
 tock-registers = "0.9.0"
-arrayvec = { version = "0.7.2", default-features = false }
-bitflags = { version = "2.4.1", features = [] }
+arrayvec = { version = "0.7.6", default-features = false }
+bitflags = { version = "2.8.0", features = [] }
 linked_list_allocator = "0.10.5"
 fdt = "0.1.5"
 spin = {version = "0.9.8", default-features = false, features = ["mutex", "spin_mutex"]}
-# [profile.release]
-# opt-level = "z"
-# strip = true
-# lto = "fat"
-# panic = "abort"
-# debug-assertions = false
-# overflow-checks = false
-# codegen-units = 1
+paste = "1.0.14"
 
-# [profile.dev]
-# debug = true
-# opt-level = "z"
-# codegen-units = 1
-# lto = "fat"
+[profile.release]
+opt-level = "z"
+strip = true
+lto = "fat"
+panic = "abort"
+debug-assertions = false
+overflow-checks = false
+codegen-units = 1
+
+[profile.dev]
+debug = true
+opt-level = "z"
+codegen-units = 1
+lto = "fat"

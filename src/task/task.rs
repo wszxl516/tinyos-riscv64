@@ -54,14 +54,14 @@ lazy_static! {
 }
 pub struct TaskManager {
     tasks: Vec<Task>,
-    tasks_index: usize,
+    current: Option<usize>,
 }
 
 impl TaskManager {
     pub const fn new() -> TaskManager {
         Self {
             tasks: Vec::new(),
-            tasks_index: 0,
+            current: None,
         }
     }
     pub fn add(&mut self, id: u32, name: &'static str, func: TaskEntry) {
@@ -79,24 +79,22 @@ impl TaskManager {
         task.context.pc = task.func as usize;
         self.tasks.push(task);
     }
-    #[optimize(speed)]
+    #[no_mangle]
     pub fn switch(&mut self, regs: &mut Context) {
-        if self.tasks_index != 0 {
-            self.tasks[self.tasks_index].context.replace(regs);
+        if let Some(index) = self.current{
+            self.tasks[index].context.replace(regs);
         }
-        self.tasks_index += 1;
-        if self.tasks_index == self.tasks.len() {
-            self.tasks_index = 0
+        let index = self.current.get_or_insert(0);
+        *index +=1;
+        if *index == self.tasks.len(){
+            *index = 0;
         }
-        regs.replace(&self.tasks[self.tasks_index].context)
+        regs.replace(&self.tasks[*index].context)
     }
 }
 
 pub fn init_task() {
     let mut mgr = TASK_MGR.lock();
-    mgr.add(0, "idle", || loop {
-        unsafe { core::arch::riscv64::wfi() }
-    });
     mgr.add(1, "demo0", demo0);
     mgr.add(2, "demo1", demo1);
     pr_notice!("{:-^50} \r\n", "");
@@ -109,7 +107,7 @@ fn demo1() -> ! {
     loop {
         for x in 0..10 {
             pr_info!("demo1 - {}\n", x);
-            sleep_ms(10);
+            sleep_ms(1000);
         }
     }
 }
@@ -119,7 +117,7 @@ fn demo0() -> ! {
     loop {
         for x in 0..10 {
             pr_notice!("demo0 - {}\n", x);
-            sleep_ms(10);
+            sleep_ms(1000);
         }
         // unsafe { core::arch::asm!("ld t0, 0({tmp})", tmp = in(reg) usize::MAX) }
     }

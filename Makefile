@@ -48,10 +48,10 @@ make_fs:
 	@mkfs.fat -F 32 hd.img > /dev/null $(NO_OUTPUT)
 	
 debug: bin make_fs
-	/usr/bin/xfce4-terminal -e '$(QEMU) $(QEMU_ARGS_RUN) -s -S'
+	/usr/bin/xfce4-terminal -e '$(QEMU) $(QEMU_ARGS_RUN) -s -S' &
 	#rust-lldb not working
-	#@rust-lldb -O "target create $(OUT_DIR)/$(TARGET)" -O "gdb-remote localhost:1234"
-	@RUST_GDB=riscv64-linux-gnu-gdb $(GDB) $(OUT_DIR)/$(TARGET) -ex "target remote :1234"
+	@rust-lldb -O "target create $(OUT_DIR)/$(TARGET)" -O "gdb-remote localhost:1234"
+	#@RUST_GDB=riscv64-linux-gnu-gdb $(GDB) $(OUT_DIR)/$(TARGET) -ex "target remote :1234"
 
 dump_dtb: make_fs
 	@$(QEMU) $(QEMU_ARGS) -machine dumpdtb=./riscv64-virt.dtb $(NO_OUTPUT)

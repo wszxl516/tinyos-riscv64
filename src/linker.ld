@@ -11,6 +11,7 @@ SECTIONS {
 		*(.text.*)
 		PROVIDE(text_end = .);
 	}
+	.root_table : ALIGN(4K) {}
 	.bss : ALIGN(4K) {
 		PROVIDE(bss_start = .);
 		*(.bss);
@@ -41,5 +42,6 @@ SECTIONS {
         . += 300k;
         PROVIDE(symbols_end = .);
     }
+	PROVIDE(test_symbol = .);
 	PROVIDE(heap_start = .);
 }

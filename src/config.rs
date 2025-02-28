@@ -32,3 +32,38 @@ pub const TICK_RATE_HZ: u64 = 1000;
 pub const ONE_TICK: u64 = CPU_CLOCK_HZ / TICK_RATE_HZ;
 const ONE_MB: usize = 0x100000;
 pub const MEM_SIZE: usize = ONE_MB * 64;
+
+pub mod ld_script_addr {
+    #[macro_export]
+    macro_rules! lds_address {
+        ($name: ident) => {
+            ::paste::paste! {
+                unsafe { &crate::config::ld_script_addr::[< $name >] as *const usize as usize }
+            }
+        };
+    }
+    macro_rules! ld_script_addr {
+      ($valtype:ident, $($name: ident), + $(,)?) => {
+          extern "C" {
+              $(pub static $name: $valtype;)*
+          }
+      };
+  }
+    ld_script_addr! {
+        usize,
+        heap_start,
+        base_addr,
+        stack_top,
+        stack_bottom,
+        bss_start,
+        bss_end,
+        text_start,
+        text_end,
+        ro_start,
+        ro_end,
+        data_start,
+        data_end,
+        symbols_start,
+        symbols_end
+    }
+}

@@ -1,7 +1,7 @@
 use core::ffi::CStr;
 
 use lazy_static::lazy_static;
-use crate::mm::ld_script_addr;
+use crate::lds_address;
 const MAGIC: [u8; 8] = [b's', b'y', b'm', b'b', b'o', b'l', b's', b'\0'];
 
 #[repr(C)]
@@ -16,12 +16,12 @@ struct Header {
 impl Header {
     const SIZE: usize = core::mem::size_of::<Self>();
     pub fn new() -> &'static Self {
-        let addr = *ld_script_addr::SYMBOL_START;
+        let addr = lds_address!(symbols_start);
         #[allow(invalid_reference_casting)]
         unsafe { &*(addr as *const Header) }
     }
     pub fn symbol_start(&self) -> *const u8 {
-        (*ld_script_addr::SYMBOL_START + Header::SIZE) as *const u8
+        (lds_address!(symbols_start) + Header::SIZE) as *const u8
     }
     pub const fn symbol_size(&self) -> usize {
         self.size - Header::SIZE

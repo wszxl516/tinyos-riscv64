@@ -3,71 +3,25 @@ pub mod config;
 pub mod entry;
 pub mod page;
 
-static mut ROOT_PAGE: Option<*mut PageTable> = None;
+#[link_section = ".root_table"]
+static mut ROOT_PAGE: PageTable = PageTable::empty();
 
-use core::alloc::{GlobalAlloc, Layout};
 use crate::config::MEM_SIZE;
 use crate::mm::address::{PhyAddr, VirtAddr};
 use crate::mm::config::{PAGE_SHIFT, PAGE_SIZE};
 use crate::mm::entry::PTEFlags;
 use crate::mm::page::PageTable;
-use crate::{mem_set, pr_notice, reg_write_p};
+use crate::{lds_address, mem_set, pr_notice, reg_write_p};
+use core::alloc::{GlobalAlloc, Layout};
 use core::arch::asm;
 use linked_list_allocator::LockedHeap;
-
-pub mod ld_script_addr {
-    use lazy_static::lazy_static;
-
-    extern "C" {
-        fn heap_start();
-        fn base_addr();
-        fn stack_top();
-        fn stack_bottom();
-        fn bss_start();
-        fn bss_end();
-        fn text_start();
-        fn text_end();
-        fn ro_start();
-        fn ro_end();
-        fn data_start();
-        fn data_end();
-        fn symbols_start();
-        fn symbols_end();
-
-    }
-    lazy_static! {
-        pub static ref HEAP_START: usize = heap_start as usize;
-        pub static ref KERNEL_SIZE: usize = heap_start as usize - base_addr as usize;
-        pub static ref BASE_ADDDR: usize = base_addr as usize;
-        pub static ref SYMBOL_START: usize = symbols_start as usize;
-        pub static ref SYMBOL_END: usize = symbols_end as usize;
-
-
-        pub static ref TEXT_START: usize = text_start as usize;
-        pub static ref TEXT_END: usize = text_end as usize;
-
-        pub static ref BSS_START: usize = bss_start as usize;
-        pub static ref BSS_END: usize = bss_end as usize;
-
-        pub static ref RO_START: usize = ro_start as usize;
-        pub static ref RO_END: usize = ro_end as usize;
-
-        pub static ref DATA_START: usize = data_start as usize;
-        pub static ref DATA_END: usize = data_end as usize;
-
-        pub static ref STACK_TOP: usize = stack_top as usize;
-        pub static ref STACK_BOTTOM: usize = stack_bottom as usize;
-
-    }
-}
 
 #[global_allocator]
 pub static ALLOCATOR: LockedHeap = LockedHeap::empty();
 #[allow(dead_code)]
 pub fn page_alloc(pages: usize) -> usize {
-    let addr = unsafe {
-        ALLOCATOR.alloc(Layout::from_size_align(pages * PAGE_SIZE, PAGE_SIZE).unwrap())
-    };
+    let addr =
+        unsafe { ALLOCATOR.alloc(Layout::from_size_align(pages * PAGE_SIZE, PAGE_SIZE).unwrap()) };
     mem_set!(addr, pages * PAGE_SIZE, 0);
     addr.addr()
 }
@@ -82,8 +36,8 @@ pub fn page_free(start: usize, pages: usize) {
     }
 }
 pub fn init_heap() {
-    let mem_size = MEM_SIZE - (*ld_script_addr::KERNEL_SIZE);
-    let heap_start = (*ld_script_addr::HEAP_START) as *mut u8;
+    let mem_size = MEM_SIZE - (lds_address!(heap_start) - lds_address!(base_addr));
+    let heap_start = lds_address!(heap_start) as *mut u8;
     pr_notice!("{:-^50}\n", "");
     pr_notice!("{: ^50} \r\n", "Heap init");
     pr_notice!("{:-^50}\n", "");
@@ -108,12 +62,7 @@ pub fn map(va: VirtAddr, pa: PhyAddr, size: usize, flags: PTEFlags, name: &str) 
         flags
     );
     unsafe {
-        match ROOT_PAGE {
-            None => panic!("ROOT_PAGE not exists!"),
-            Some(root) => {
-                (*root).map(va, pa, size, flags);
-            }
-        }
+        ROOT_PAGE.map(va, pa, size, flags);
     }
 }
 
@@ -122,16 +71,12 @@ pub fn flush_tlb() {
     unsafe { asm!("sfence.vma zero, zero") }
 }
 
-pub fn enable_mmu(root: *mut PageTable) {
-    reg_write_p!(satp, config::SATP_SV39 | (*root).addr().0 >> PAGE_SHIFT);
+pub fn enable_mmu(root: PhyAddr) {
+    reg_write_p!(satp, config::SATP_SV39 | root.0 >> PAGE_SHIFT);
     flush_tlb()
 }
 
 pub fn setup_mmu() {
-    unsafe {
-        let root_page = PageTable::from_address(page_alloc(1));
-        ROOT_PAGE = Some(root_page);
-    }
     pr_notice!("{:-^50} \r\n", "");
     pr_notice!("{: ^50} \r\n", "Memory Map");
     //uart
@@ -160,40 +105,46 @@ pub fn setup_mmu() {
     let pa = PhyAddr::new(crate::config::PLIC_BASE);
     map(va, pa, 0x600000, PTEFlags::RW, "plic");
     //text
-    let size = *ld_script_addr::TEXT_END - *ld_script_addr::TEXT_START;
-    let va = VirtAddr::new(*ld_script_addr::TEXT_START);
-    let pa = PhyAddr::new(*ld_script_addr::TEXT_START);
+    let size = lds_address!(text_end) - lds_address!(text_start);
+    let va = VirtAddr::new(lds_address!(text_start));
+    let pa = PhyAddr::new(lds_address!(text_start));
     map(va, pa, size, PTEFlags::RWX, "text");
     //bss
-    let size = *ld_script_addr::BSS_END - *ld_script_addr::BSS_START;
-    let va = VirtAddr::new(*ld_script_addr::BSS_START);
-    let pa = PhyAddr::new(*ld_script_addr::BSS_START);
+    let size = lds_address!(bss_end) - lds_address!(bss_start);
+    let va = VirtAddr::new(lds_address!(bss_start));
+    let pa = PhyAddr::new(lds_address!(bss_start));
     map(va, pa, size, PTEFlags::RW, "bss");
     //rodata
-    let size = *ld_script_addr::RO_END - *ld_script_addr::RO_START;
-    let va = VirtAddr::new(*ld_script_addr::RO_START);
-    let pa = PhyAddr::new(*ld_script_addr::RO_START);
+    let size = lds_address!(ro_end) - lds_address!(ro_start);
+    let va = VirtAddr::new(lds_address!(ro_start));
+    let pa = PhyAddr::new(lds_address!(ro_start));
     map(va, pa, size, PTEFlags::RW, "rodata");
     //data
-    let size = *ld_script_addr::DATA_END - *ld_script_addr::DATA_START;
-    let va = VirtAddr::new(*ld_script_addr::DATA_START);
-    let pa = PhyAddr::new(*ld_script_addr::DATA_START);
+    let size = lds_address!(data_end) - lds_address!(data_start);
+    let va = VirtAddr::new(lds_address!(data_start));
+    let pa = PhyAddr::new(lds_address!(data_start));
     map(va, pa, size, PTEFlags::RW, "data");
     //stack
-    let size = *ld_script_addr::STACK_TOP - *ld_script_addr::STACK_BOTTOM;
-    let va = VirtAddr::new(*ld_script_addr::STACK_BOTTOM);
-    let pa = PhyAddr::new(*ld_script_addr::STACK_BOTTOM);
+    let size = lds_address!(stack_top) - lds_address!(stack_bottom);
+    let va = VirtAddr::new(lds_address!(stack_bottom));
+    let pa = PhyAddr::new(lds_address!(stack_bottom));
     map(va, pa, size, PTEFlags::RW, "stack");
     //symbols
-    let size = *ld_script_addr::SYMBOL_END - *ld_script_addr::SYMBOL_START;
-    let va = VirtAddr::new(*ld_script_addr::SYMBOL_START);
-    let pa = PhyAddr::new(*ld_script_addr::SYMBOL_START);
-    map(va, pa, size, PTEFlags::RW, "stack");
+    let size = lds_address!(symbols_end) - lds_address!(symbols_start);
+    let va = VirtAddr::new(lds_address!(symbols_start));
+    let pa = PhyAddr::new(lds_address!(symbols_start));
+    map(va, pa, size, PTEFlags::RW, "symbols");
     //heap
-    let va = VirtAddr::new(*ld_script_addr::HEAP_START);
-    let pa = PhyAddr::new(*ld_script_addr::HEAP_START);
-    map(va, pa, MEM_SIZE - *ld_script_addr::KERNEL_SIZE, PTEFlags::RW, "heap");
+    let va = VirtAddr::new(lds_address!(heap_start));
+    let pa = PhyAddr::new(lds_address!(heap_start));
+    map(
+        va,
+        pa,
+        MEM_SIZE - (lds_address!(heap_start) - lds_address!(base_addr)),
+        PTEFlags::RW,
+        "heap",
+    );
     pr_notice!("{:-^50} \r\n", "");
     pr_notice!("{:-^50} \r\n", "");
-    enable_mmu(unsafe { ROOT_PAGE }.unwrap());
+    enable_mmu(unsafe { ROOT_PAGE.addr() });
 }

@@ -4,7 +4,7 @@ pub mod pci;
 pub mod ids;
 mod bar;
 
-use super::DTB_ADDR;
+use crate::arch::BOOT_ARGS;
 use super::virtio::{VirtioBlkTrans, blk};
 use fdt;
 use pci::PCIBus;
@@ -13,7 +13,7 @@ use super::super::common::readable::HumanReadable;
 static mut PCI_BUS: Option<PCIBus> = None;
 
 pub fn init_pci() {
-    let dtb = unsafe { fdt::Fdt::from_ptr(DTB_ADDR as *const u8) }.unwrap();
+    let dtb = unsafe { fdt::Fdt::from_ptr(BOOT_ARGS[1] as *const u8) }.unwrap();
     if let Some(soc) = dtb.find_node("/soc") {
         for c in soc.children() {
             if c.name.contains("pci@") {
