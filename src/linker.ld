@@ -15,6 +15,7 @@ SECTIONS {
 	.bss : ALIGN(4K) {
 		PROVIDE(bss_start = .);
 		*(.bss);
+		*(.bss.*)
 		*(.sbss*)
 		. += 4096;
 		PROVIDE(bss_end = .);

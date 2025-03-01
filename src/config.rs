@@ -15,7 +15,6 @@ pub const LOGO_STR: &str = r#"
 
 pub const SMP_COUNT: usize = 1;
 
-pub const NANO_SECOND: u64 = 1000000000;
 //google goldfish
 pub const RTC_BASE_ADDR: usize = 0x101000;
 pub const GOLDFISH_RTC_TIME: usize = 0x00;
@@ -27,9 +26,8 @@ pub const CLINT_BASE: usize = 0x2000000;
 pub const PLIC_BASE: usize = 0xc000000;
 pub const MTIME_OFFSET: usize = 0xbff8;
 pub const MTIME_CMP_OFFSET: usize = 0x4000;
-pub const CPU_CLOCK_HZ: u64 = 10000000;
-pub const TICK_RATE_HZ: u64 = 1000;
-pub const ONE_TICK: u64 = CPU_CLOCK_HZ / TICK_RATE_HZ;
+pub const CLOCK_HZ: u64 = 10_000_000;
+pub const NANO_SECOND: u64 = 1000000000;
 const ONE_MB: usize = 0x100000;
 pub const MEM_SIZE: usize = ONE_MB * 64;
 

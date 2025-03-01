@@ -24,15 +24,13 @@ bitflags! {
         const RWX = 1 << 1 | 1 << 2 | 1 << 3;
     }
 }
-impl PTEFlags {
-    const FLAG_STR: [char; 8] = ['V', 'R', 'W', 'X', 'U', 'G', 'A', 'D'];
-}
 
 impl Display for PTEFlags {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        for i in (0usize..8).rev() {
+        const FLAG_STR: [char; 8] = ['V', 'R', 'W', 'X', 'U', 'G', 'A', 'D'];
+        for i in 0usize..FLAG_STR.len() {
             if self.contains(Self::from_bits(1 << i).unwrap()) {
-                write!(f, "{}", PTEFlags::FLAG_STR[i]).unwrap()
+                write!(f, "{}", FLAG_STR[i]).unwrap()
             } else {
                 write!(f, "-").unwrap()
             }
@@ -52,7 +50,7 @@ impl Display for Entry {
 }
 
 impl Entry {
-    pub const fn empty() -> Self{
+    pub const fn empty() -> Self {
         Self(0)
     }
     pub fn get_ppn(&self, index: usize) -> usize {

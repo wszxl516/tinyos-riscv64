@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use crate::arch::trap::{disable_irq_s, enable_irq_s};
 use crate::arch::trap::plic::register_handler;
 use arrayvec::ArrayVec;
 use core::fmt;
@@ -70,9 +69,7 @@ impl Write for Stdio {
 }
 
 pub fn puts(args: fmt::Arguments) {
-    disable_irq_s();
     unsafe { STDIO.write_fmt(args) }.unwrap();
-    enable_irq_s();
 }
 
 pub fn gets() -> Option<u8> {

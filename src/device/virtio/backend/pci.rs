@@ -1,11 +1,11 @@
 use core::fmt::{Display, Formatter};
 use core::mem::size_of;
 
+use crate::device::pci::pci::PCIBus;
+use crate::device::virtio::blk::{DeviceStatus, Transport};
 use crate::{pr_notice, reg_read_a};
 use tock_registers::interfaces::{Readable, Writeable};
 use tock_registers::registers::{ReadOnly, ReadWrite};
-use crate::device::pci::pci::{PCIBus};
-use crate::device::virtio::blk::{Transport, DeviceStatus};
 
 //http://docs.oasis-open.org/virtio/virtio/v1.3/virtio-v1.3.html
 #[repr(u8)]
@@ -22,42 +22,40 @@ pub enum CapType {
     /* PCI configuration access */
     VirtioPciCapPciCfg = 5,
 }
-impl From<u8> for CapType{
+impl From<u8> for CapType {
     fn from(value: u8) -> Self {
         unsafe { core::mem::transmute_copy(&value) }
     }
 }
 
-
-
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct VirtioCap {
-    cap_vndr: u8,     /* Generic PCI field: PCI_CAP_ID_VNDR */
-    cap_next: u8,     /* Generic PCI field: next ptr. */
-    cap_len: u8,      /* Generic PCI field: capability length */
-    cfg_type: CapType,     /* Identifies the structure. */
-    bar: u8,          /* Where to find it. */
-    padding: [u8; 3], /* Pad to full dword. */
-    offset: u32,      /* Offset within bar. */
-    length: u32,      /* Length of the structure, in bytes. */
+    cap_vndr: u8,      /* Generic PCI field: PCI_CAP_ID_VNDR */
+    cap_next: u8,      /* Generic PCI field: next ptr. */
+    cap_len: u8,       /* Generic PCI field: capability length */
+    cfg_type: CapType, /* Identifies the structure. */
+    bar: u8,           /* Where to find it. */
+    padding: [u8; 3],  /* Pad to full dword. */
+    offset: u32,       /* Offset within bar. */
+    length: u32,       /* Length of the structure, in bytes. */
     base_addr: usize,
-    self_offset: usize
+    self_offset: usize,
 }
 #[repr(C)]
 struct VirtioPciNotifyCap {
-     cap:VirtioCap,
-     notify_off_multiplier: u32   /* Multiplier for queue_notify_off. */
+    cap: VirtioCap,
+    notify_off_multiplier: u32, /* Multiplier for queue_notify_off. */
 }
 #[repr(C)]
 struct VirtioPciCfgCap {
-    cap:VirtioCap,
-    pci_cfg_data: [u8;4] /* Data for BAR access. */
+    cap: VirtioCap,
+    pci_cfg_data: [u8; 4], /* Data for BAR access. */
 }
 #[repr(C)]
 struct VirtioPciIsr {
-    cap:VirtioCap,
-    isr: u8
+    cap: VirtioCap,
+    isr: u8,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -97,7 +95,6 @@ pub struct VirtioPciCommonCfg {
 }
 impl VirtioCap {
     pub fn from_addr(addr: usize, offset: usize) -> Self {
-
         let address = addr + offset;
         Self {
             cap_vndr: reg_read_a!(address, u8),
@@ -113,7 +110,7 @@ impl VirtioCap {
             offset: reg_read_a!(address + 8, u32).to_le(),
             length: reg_read_a!(address + 12, u32).to_le(),
             base_addr: addr,
-            self_offset: offset
+            self_offset: offset,
         }
     }
     pub fn next(&self) -> Option<Self> {
@@ -127,23 +124,23 @@ impl VirtioCap {
 #[allow(dead_code)]
 pub struct VirtioBlkTrans {
     pub config: Option<BlkConfig>,
-    common_cfg: Option<* mut VirtioPciCommonCfg>,
+    common_cfg: Option<*mut VirtioPciCommonCfg>,
     isr_cfg: Option<*mut u8>,
-    notify_reg: Option<* mut u16>,
+    notify_reg: Option<*mut u16>,
     notify_cfg: Option<*mut VirtioPciNotifyCap>,
 }
-impl Transport for VirtioBlkTrans{
+impl Transport for VirtioBlkTrans {
     fn capacity(&self) -> u64 {
-        match self.config(){
+        match self.config() {
             None => 0,
-            Some(config) => (config.capacity_high as u64) << 32 | config.capacity_low as u64
+            Some(config) => (config.capacity_high as u64) << 32 | config.capacity_low as u64,
         }
     }
 
     fn blk_size(&self) -> u64 {
-        match self.config(){
+        match self.config() {
             None => 0,
-            Some(config) => config.blk_size as u64
+            Some(config) => config.blk_size as u64,
         }
     }
 
@@ -204,13 +201,19 @@ impl VirtioBlkTrans {
     pub fn from_pci(mut pci_bus: PCIBus) -> Option<Self> {
         let mut common_cfg = None;
         let mut notify_cfg = None;
-        let mut isr_reg = None ;
+        let mut isr_reg = None;
         let mut notify_reg = None;
         let mut device_cfg = None;
-        match pci_bus.find_device(Self::BLK_VENDOR, Self::BLK_DEVICE){
+        match pci_bus.find_device(Self::BLK_VENDOR, Self::BLK_DEVICE) {
             None => return None,
             Some(mut pci) => {
-                pr_notice!("PCI: {:02}.{:02}.{:02} {}\n", pci.bus, pci.device, pci.func, pci);
+                pr_notice!(
+                    "PCI: {:02}.{:02}.{:02} {}\n",
+                    pci.bus,
+                    pci.device,
+                    pci.func,
+                    pci
+                );
                 pci.enable();
                 let mut cap;
                 let c = pci.cap.unwrap();
@@ -228,22 +231,30 @@ impl VirtioBlkTrans {
                                     pci.setup_bar(cap.bar as usize, address.0, address.1);
                                     address.1
                                 }
-                                _ => pci.base_address_reg[cap.bar as usize].addr
-
+                                _ => pci.base_address_reg[cap.bar as usize].addr,
                             };
                             match cap.cfg_type {
                                 CapType::VirtioPciCapCommonCfg => {
-                                    common_cfg =  Some((base_addr + cap.offset as usize) as *mut VirtioPciCommonCfg);
+                                    common_cfg = Some(
+                                        (base_addr + cap.offset as usize)
+                                            as *mut VirtioPciCommonCfg,
+                                    );
                                 }
                                 CapType::VirtioPciCapNotifyCfg => {
-                                    notify_reg = Some((base_addr + cap.offset as usize) as *mut u16);
-                                    notify_cfg = Some((cap.base_addr + cap.self_offset) as *mut VirtioPciNotifyCap)
+                                    notify_reg =
+                                        Some((base_addr + cap.offset as usize) as *mut u16);
+                                    notify_cfg = Some(
+                                        (cap.base_addr + cap.self_offset)
+                                            as *mut VirtioPciNotifyCap,
+                                    )
                                 }
                                 CapType::VirtioPciCapIsrCfg => {
                                     isr_reg = Some((base_addr + cap.offset as usize) as *mut u8)
                                 }
                                 CapType::VirtioPciCapDeviceCfg => {
-                                    device_cfg =  Some(unsafe {  *((base_addr + cap.offset as usize) as *mut BlkConfig) })
+                                    device_cfg = Some(unsafe {
+                                        *((base_addr + cap.offset as usize) as *mut BlkConfig)
+                                    })
                                 }
                                 _ => {}
                             }
@@ -253,28 +264,31 @@ impl VirtioBlkTrans {
             }
         }
 
-        Some(Self{ config:  device_cfg, common_cfg, isr_cfg: isr_reg, notify_reg,  notify_cfg })
+        Some(Self {
+            config: device_cfg,
+            common_cfg,
+            isr_cfg: isr_reg,
+            notify_reg,
+            notify_cfg,
+        })
     }
     fn common_reg(&self) -> &'static mut VirtioPciCommonCfg {
         match self.common_cfg {
             None => panic!("VirtioPciCommonCfg is none!"),
-            Some(reg) => unsafe { &mut *reg }
+            Some(reg) => unsafe { &mut *reg },
         }
     }
-    fn notify_reg(&self) -> *mut u16{
+    fn notify_reg(&self) -> *mut u16 {
         match self.notify_reg {
             None => panic!("notify_reg is none!"),
-            Some(reg) =>  reg
+            Some(reg) => reg,
         }
-
     }
 
     fn ack_interrupt(&mut self) {
         match self.isr_cfg {
             None => {}
-            Some(isr) => {
-                unsafe { isr.write_volatile(0) }
-            }
+            Some(isr) => unsafe { isr.write_volatile(0) },
         }
     }
     pub fn status(&self) -> DeviceStatus {
@@ -282,14 +296,16 @@ impl VirtioBlkTrans {
     }
     #[inline]
     pub fn reset(&mut self) {
-        let virtio =  self.common_reg();
+        let virtio = self.common_reg();
         virtio.device_status.set(DeviceStatus::empty().bits());
         virtio.device_status.set(
-            (DeviceStatus::from_bits_truncate(virtio.device_status.get()) | DeviceStatus::ACKNOWLEDGE)
+            (DeviceStatus::from_bits_truncate(virtio.device_status.get())
+                | DeviceStatus::ACKNOWLEDGE)
                 .bits(),
         );
         virtio.device_status.set(
-            (DeviceStatus::from_bits_truncate(virtio.device_status.get()) | DeviceStatus::DRIVER).bits(),
+            (DeviceStatus::from_bits_truncate(virtio.device_status.get()) | DeviceStatus::DRIVER)
+                .bits(),
         );
     }
     pub const fn config(&self) -> Option<BlkConfig> {
@@ -321,9 +337,12 @@ impl VirtioBlkTrans {
         self.common_reg().queue_select.set(queue as u16);
         let queue_notify_off = self.common_reg().queue_notify_off.get();
         let notify = self.notify_cfg.unwrap();
-        let offset_bytes = usize::from(queue_notify_off) * (unsafe { &mut *notify }).notify_off_multiplier as usize;
+        let offset_bytes = usize::from(queue_notify_off)
+            * (unsafe { &mut *notify }).notify_off_multiplier as usize;
         let index = offset_bytes / size_of::<u16>();
-        unsafe { self.notify_reg().add(index).write(queue as u16); }
+        unsafe {
+            self.notify_reg().add(index).write(queue as u16);
+        }
     }
 
     fn set_status(&mut self, status: DeviceStatus) {
@@ -350,7 +369,6 @@ impl VirtioBlkTrans {
         self.common_reg().queue_select.set(queue as u16);
         self.common_reg().queue_enable.get() != 0
     }
-
 
     pub fn init(&mut self) {
         self.set_status(DeviceStatus::ACKNOWLEDGE);

@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
 use super::super::config::{
-    CLINT_BASE, GOLDFISH_RTC_TIME, MTIME_CMP_OFFSET, MTIME_OFFSET, NANO_SECOND, ONE_TICK,
+    CLINT_BASE, CLOCK_HZ, GOLDFISH_RTC_TIME, MTIME_CMP_OFFSET, MTIME_OFFSET, NANO_SECOND,
     RTC_BASE_ADDR,
 };
 use crate::{reg_read_a, reg_write_a};
 use core::fmt::{Display, Formatter};
-
+const MS_PEER_HZ: u64 = CLOCK_HZ / 1000;
 static mut TICKS: u64 = 0;
 
 pub struct Time {
@@ -38,9 +38,13 @@ impl Time {
 #[no_mangle]
 pub fn setup_timer() {
     let current = reg_read_a!(CLINT_BASE + MTIME_OFFSET, u64);
-    reg_write_a!(CLINT_BASE + MTIME_CMP_OFFSET, current + ONE_TICK * 100, u64);
+    reg_write_a!(
+        CLINT_BASE + MTIME_CMP_OFFSET,
+        current + MS_PEER_HZ * 10,
+        u64
+    );
     unsafe {
-        TICKS += 100;
+        TICKS += 10;
     }
 }
 
@@ -55,5 +59,9 @@ pub fn disable_timer() {
 
 pub fn enable_timer() {
     let current = reg_read_a!(CLINT_BASE + MTIME_OFFSET, u64);
-    reg_write_a!(CLINT_BASE + MTIME_CMP_OFFSET, current + ONE_TICK * 100, u64);
+    reg_write_a!(
+        CLINT_BASE + MTIME_CMP_OFFSET,
+        current + MS_PEER_HZ * 10,
+        u64
+    );
 }

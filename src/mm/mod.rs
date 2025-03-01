@@ -72,6 +72,7 @@ pub fn flush_tlb() {
 }
 
 pub fn enable_mmu(root: PhyAddr) {
+    pr_notice!("{:#x} \r\n", root.0);
     reg_write_p!(satp, config::SATP_SV39 | root.0 >> PAGE_SHIFT);
     flush_tlb()
 }
@@ -118,7 +119,7 @@ pub fn setup_mmu() {
     let size = lds_address!(ro_end) - lds_address!(ro_start);
     let va = VirtAddr::new(lds_address!(ro_start));
     let pa = PhyAddr::new(lds_address!(ro_start));
-    map(va, pa, size, PTEFlags::RW, "rodata");
+    map(va, pa, size, PTEFlags::R, "rodata");
     //data
     let size = lds_address!(data_end) - lds_address!(data_start);
     let va = VirtAddr::new(lds_address!(data_start));

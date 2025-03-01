@@ -70,16 +70,17 @@ impl CPU {
         }
     }
     pub fn dump(&self) {
+        const RESERVED: [u8; 9] = [6, 10, 11, 14, 17, 19, 22, 24, 25];
         let mut buffer = [0u8; 26];
         for i in 0..26 {
             //reserved
-            if [6, 10, 11, 14, 17, 19, 22, 24, 25].contains(&i) {
+            if RESERVED.contains(&i) {
                 continue;
             }
-            if (self.feature.extensions & (1 << i)) >= 1{
-                buffer[i] = b'a' + i as u8;
+            if (self.feature.extensions & (1 << i)) >= 1 {
+                buffer[i as usize] = b'a' + i as u8;
             } else {
-                buffer[i] = 1;
+                buffer[i as usize] = 1;
             }
         }
         pr_notice!("{:-^50} \n", "");
@@ -90,7 +91,7 @@ impl CPU {
             unsafe { core::str::from_utf8_unchecked(&buffer) },
             self.feature.vendor_id,
             self.feature.machine_id,
-            self.feature.impl_id
+            self.feature.impl_id,
         );
     }
 }

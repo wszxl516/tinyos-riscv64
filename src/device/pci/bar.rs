@@ -23,7 +23,7 @@ pub struct Bar {
     pub mem_bits: u8,
     pub prefetch: bool,
     pub mem_size: usize,
-    pub addr: usize
+    pub addr: usize,
 }
 impl Debug for Bar {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
@@ -84,7 +84,7 @@ impl Bar {
                 _ => unreachable!(),
             },
             mem_size: mem_size as usize,
-            addr:0
+            addr: 0,
         };
         reg.0.set(old);
         bar

@@ -6,7 +6,7 @@ use bitflags::*;
 use tock_registers::interfaces::{Readable, Writeable};
 use tock_registers::registers::ReadWrite;
 
-use crate::{align};
+use crate::align;
 use crate::device::virtio::blk::Transport;
 use crate::mm::{config::PAGE_SIZE, page_alloc};
 
@@ -55,8 +55,7 @@ impl VirtQueue {
             dma + layout.used_offset,
         );
 
-        let desc =
-            unsafe { slice::from_raw_parts_mut(dma as *mut Descriptor, size as usize) };
+        let desc = unsafe { slice::from_raw_parts_mut(dma as *mut Descriptor, size as usize) };
 
         // Link descriptors together.
         for i in 0..(size - 1) {
@@ -77,12 +76,7 @@ impl VirtQueue {
     }
     #[inline]
     fn get_desc(&self) -> &mut [Descriptor] {
-        unsafe {
-            slice::from_raw_parts_mut(
-                self.desc as *mut Descriptor,
-                self.queue_size as usize,
-            )
-        }
+        unsafe { slice::from_raw_parts_mut(self.desc as *mut Descriptor, self.queue_size as usize) }
     }
     #[inline]
     fn get_avail(&self) -> &mut AvailRing {
@@ -233,8 +227,7 @@ pub(crate) struct Descriptor {
 
 impl Descriptor {
     fn set_buf(&mut self, buf: &[u8]) {
-        self.addr
-            .set(buf.as_ptr() as usize as u64);
+        self.addr.set(buf.as_ptr() as usize as u64);
         self.len.set(buf.len() as u32);
     }
 }

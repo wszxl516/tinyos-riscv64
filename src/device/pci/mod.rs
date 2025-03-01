@@ -1,15 +1,15 @@
 #[macro_use]
 pub mod macros;
-pub mod pci;
-pub mod ids;
 mod bar;
+pub mod ids;
+pub mod pci;
 
+use super::super::common::readable::HumanReadable;
+use super::virtio::{blk, VirtioBlkTrans};
 use crate::arch::BOOT_ARGS;
-use super::virtio::{VirtioBlkTrans, blk};
+use crate::{pr_err, pr_notice};
 use fdt;
 use pci::PCIBus;
-use crate::{pr_err, pr_notice};
-use super::super::common::readable::HumanReadable;
 static mut PCI_BUS: Option<PCIBus> = None;
 
 pub fn init_pci() {
@@ -25,30 +25,27 @@ pub fn init_pci() {
 const MBR_MAGIC: [u8; 2] = [0x55, 0xAA];
 pub fn find_virt() {
     let pci_bus;
-    match unsafe {PCI_BUS} {
+    match unsafe { PCI_BUS } {
         None => panic!("no pci bus!"),
-        Some(p) => {
-            pci_bus = p
-        }
+        Some(p) => pci_bus = p,
     }
     match &mut VirtioBlkTrans::from_pci(pci_bus) {
         None => {}
-        Some(virt) =>  {
-            match &mut blk::VirtIOBlk::new(virt){
-                Err(e) => {
-                    pr_err!("init block device failed: {:?}\n", e)
-                }
-                Ok(blk) => {
-                    let mut buffer = [0u8; 512];
-                    blk.read_block(0, &mut buffer).unwrap();
-                    pr_notice!("disk size: {}!\n", (blk.capacity * blk.blk_size).readable(2));
-                    if buffer.ends_with(&MBR_MAGIC) {
-                        pr_notice!("This is a MBR partition!\n");
-                    }
+        Some(virt) => match &mut blk::VirtIOBlk::new(virt) {
+            Err(e) => {
+                pr_err!("init block device failed: {:?}\n", e)
+            }
+            Ok(blk) => {
+                let mut buffer = [0u8; 512];
+                blk.read_block(0, &mut buffer).unwrap();
+                pr_notice!(
+                    "disk size: {}!\n",
+                    (blk.capacity * blk.blk_size).readable(2)
+                );
+                if buffer.ends_with(&MBR_MAGIC) {
+                    pr_notice!("This is a MBR partition!\n");
                 }
             }
-
-        }
+        },
     }
-
 }

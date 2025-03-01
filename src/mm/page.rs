@@ -12,7 +12,9 @@ pub struct PageTable {
 
 impl PageTable {
     pub const fn empty() -> Self {
-        Self{root: [Entry::empty(); 512]}
+        Self {
+            root: [Entry::empty(); 512],
+        }
     }
     pub fn map(&mut self, va: VirtAddr, pa: PhyAddr, size: usize, flags: PTEFlags) {
         let mut va_start = VirtAddr::new(align_down!(va.0));

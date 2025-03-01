@@ -1,9 +1,9 @@
+use bitflags::bitflags;
 use core::cell::RefCell;
 use core::hint::spin_loop;
 use core::mem::size_of;
-use bitflags::bitflags;
 
-use super::{queue::VirtQueue};
+use super::queue::VirtQueue;
 use super::{Error, Result};
 pub struct VirtIOBlk<'a> {
     pub transport: &'a mut dyn Transport,
@@ -32,7 +32,7 @@ bitflags! {
         const DEVICE_NEEDS_RESET = 64;
     }
 }
-pub trait Transport{
+pub trait Transport {
     fn capacity(&self) -> u64;
     fn blk_size(&self) -> u64;
     fn status(&self) -> DeviceStatus;
@@ -47,17 +47,9 @@ pub trait Transport{
 
     fn set_status(&mut self, status: DeviceStatus);
 
-    fn queue_set(
-        &mut self,
-        queue: u32,
-        size: u32,
-        desc: usize,
-        driver: usize,
-        device: usize,
-    );
+    fn queue_set(&mut self, queue: u32, size: u32, desc: usize, driver: usize, device: usize);
 
     fn queue_used(&mut self, queue: u32) -> bool;
-
 
     fn init(&mut self);
     fn finish_init(&mut self);
@@ -77,7 +69,6 @@ impl VirtIOBlk<'_> {
         })
     }
 
-
     pub fn read_block(&mut self, block_id: usize, buf: &mut [u8]) -> Result {
         assert_eq!(buf.len(), self.blk_size as usize);
         let req = BlkReq {
@@ -86,7 +77,8 @@ impl VirtIOBlk<'_> {
             sector: block_id as u64,
         };
         let mut resp = BlkResp::default();
-        self.queue.borrow_mut()
+        self.queue
+            .borrow_mut()
             .add(&[req.as_buf()], &[buf, resp.as_buf_mut()])?;
         self.transport.notify(0);
         while !self.queue.borrow_mut().can_pop() {

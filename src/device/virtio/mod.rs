@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-pub use backend::{VirtioBlkTrans};
+pub use backend::VirtioBlkTrans;
 pub const DISK_BLK_SIZE: usize = 512;
 // pub mod blk;
 pub mod backend;

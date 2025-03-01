@@ -34,7 +34,7 @@ pub fn interrupt_handler(interrupt: Interrupt, stack_addr: &mut Context) {
     match interrupt {
         Interrupt::SupervisorSoftwareInterrupt => {
             reg_clear_bit_p!(sip, 1 << 1);
-            if get_ticks() % 500 == 0 {
+            if get_ticks() % 10 == 0 {
                 task_switch(stack_addr)
             }
         }

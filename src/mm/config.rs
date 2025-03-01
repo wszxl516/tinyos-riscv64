@@ -21,6 +21,6 @@ macro_rules! align_down {
 #[macro_export]
 macro_rules! mem_set {
     ($address: expr, $len: expr, $value: expr) => {
-            unsafe { core::slice::from_raw_parts_mut($address, $len).fill($value) }
+        unsafe { core::slice::from_raw_parts_mut($address, $len).fill($value) }
     };
 }

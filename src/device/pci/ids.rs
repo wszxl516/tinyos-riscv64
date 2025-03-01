@@ -1,15 +1,23 @@
 //https://wiki.osdev.org/PCI#Base_Address_Registers
-#[link_section = ".device"]
+#[link_section = ".rodata"]
 static DEVICE_TYPE: [(u8, &str, [(u8, &str); 1]); 5] = [
-    (0x1, "Mass Storage Controller", [(0x0, "SCSI Bus Controller")]),
+    (
+        0x1,
+        "Mass Storage Controller",
+        [(0x0, "SCSI Bus Controller")],
+    ),
     (0x2, "Network Controller", [(0x0, "Ethernet Controller")]),
-    (0x3, "Display Controller", [(0x0, "VGA Compatible Controller")]),
+    (
+        0x3,
+        "Display Controller",
+        [(0x0, "VGA Compatible Controller")],
+    ),
     (0x6, "Bridge", [(0x0, "Host Bridge")]),
-    (0xC, "Serial Bus Controller", [(0x3, "USB Controller")] )
+    (0xC, "Serial Bus Controller", [(0x3, "USB Controller")]),
 ];
 const PLACE_SYMBOL: &str = "    ";
 ///usr/share/hwdata/pci.ids
-#[link_section = ".device"]
+#[link_section = ".rodata"]
 static PCI_IDS: &str = r#"
 1af4    Red Hat, Inc.
     1000    Virtio network device
@@ -51,7 +59,7 @@ static PCI_IDS: &str = r#"
 "#;
 pub fn find(vendor: u16, device: u16) -> (&'static str, &'static str) {
     use core::fmt::Write;
-    let mut buffer:arrayvec::ArrayString<512> = arrayvec::ArrayString::<512>::new();
+    let mut buffer: arrayvec::ArrayString<512> = arrayvec::ArrayString::<512>::new();
     let mut vendor_name = "";
     let mut device_name = "";
     for line in PCI_IDS.lines() {
@@ -82,11 +90,15 @@ pub fn dev_type(base: u8, sub: u8) -> &'static str {
     for (base_id, base_name, sub_v) in DEVICE_TYPE {
         if base == base_id {
             b_name = base_name
-        } else { continue; }
+        } else {
+            continue;
+        }
         for (s_i, s_n) in sub_v {
             if s_i == sub {
                 s_name = s_n
-            } else { break; }
+            } else {
+                break;
+            }
         }
     }
     if !s_name.is_empty() {

@@ -87,7 +87,7 @@ impl Display for Context {
                 x + 3,
                 arr[x + 2]
             ))
-                .unwrap();
+            .unwrap();
         }
         f.write_fmt(format_args!("pc  = {:#018x}", arr[31]))
     }

@@ -81,12 +81,12 @@ impl TaskManager {
     }
     #[no_mangle]
     pub fn switch(&mut self, regs: &mut Context) {
-        if let Some(index) = self.current{
+        if let Some(index) = self.current {
             self.tasks[index].context.replace(regs);
         }
         let index = self.current.get_or_insert(0);
-        *index +=1;
-        if *index == self.tasks.len(){
+        *index += 1;
+        if *index == self.tasks.len() {
             *index = 0;
         }
         regs.replace(&self.tasks[*index].context)
@@ -107,7 +107,7 @@ fn demo1() -> ! {
     loop {
         for x in 0..10 {
             pr_info!("demo1 - {}\n", x);
-            sleep_ms(1000);
+            sleep_ms(100);
         }
     }
 }
@@ -117,7 +117,7 @@ fn demo0() -> ! {
     loop {
         for x in 0..10 {
             pr_notice!("demo0 - {}\n", x);
-            sleep_ms(1000);
+            sleep_ms(100);
         }
         // unsafe { core::arch::asm!("ld t0, 0({tmp})", tmp = in(reg) usize::MAX) }
     }

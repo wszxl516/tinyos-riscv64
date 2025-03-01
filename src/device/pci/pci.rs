@@ -4,9 +4,9 @@ use super::{
     ids::{dev_type, find},
 };
 use crate::device::pci::bar::BarType;
+use arrayvec::ArrayString;
 use bitflags::bitflags;
 use core::fmt::{Debug, Display, Formatter};
-use arrayvec::ArrayString;
 use fdt::node::FdtNode;
 use tock_registers::register_bitfields;
 use tock_registers::registers::ReadWrite;
@@ -113,8 +113,10 @@ impl PCIBus {
     pub fn from_fdt(node: &FdtNode) -> PCIBus {
         let mut pci = Self::new();
         pci.name.push_str(node.name);
-        pci.compatible.push_str(node.property("compatible").unwrap().as_str().unwrap());
-        pci.device_type.push_str(node.property("device_type").unwrap().as_str().unwrap());
+        pci.compatible
+            .push_str(node.property("compatible").unwrap().as_str().unwrap());
+        pci.device_type
+            .push_str(node.property("device_type").unwrap().as_str().unwrap());
         let mut ranges = [0u32; 21];
         let p = node.property("reg").unwrap();
         let s = fdt_get_u64!(p.value);
@@ -145,19 +147,18 @@ impl PCIBus {
         pci.bus_range[1] = s.1;
         pci
     }
-    pub fn find_device(&self, vendor_id:  u16, device_id: u16) -> Option<Header0>{
+    pub fn find_device(&self, vendor_id: u16, device_id: u16) -> Option<Header0> {
         for device in 0u8..255 {
-            match Header0::new(pci_addr!(self.reg, 0, device, 0), 0, device, 0)
-             {
-                 None => return None,
-                 Some(pci) => {
-                     if pci.header.vendor_id == vendor_id && pci.header.device_id == device_id {
-                         return Some(pci);
-                     }
-                 }
-             }
+            match Header0::new(pci_addr!(self.reg, 0, device, 0), 0, device, 0) {
+                None => return None,
+                Some(pci) => {
+                    if pci.header.vendor_id == vendor_id && pci.header.device_id == device_id {
+                        return Some(pci);
+                    }
+                }
+            }
         }
-        return None
+        return None;
     }
 }
 
@@ -208,7 +209,7 @@ impl Head {
         }
     }
 }
-impl Display for Header0  {
+impl Display for Header0 {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.header)
     }
@@ -231,7 +232,7 @@ pub struct Header0 {
     pub base_addr: usize,
     pub bus: u8,
     pub device: u8,
-    pub func: u8
+    pub func: u8,
 }
 bitflags! {
     struct Command: u16{
@@ -255,9 +256,12 @@ impl Header0 {
         if header.vendor_id == u16::MAX && header.device_id == u16::MAX {
             return None;
         }
-        let cap = match read_register!(base + 0x34, u8){
+        let cap = match read_register!(base + 0x34, u8) {
             0 => None,
-            _ => Some(Cap::from_addr(base, read_register!(base + 0x34, u8) as usize))
+            _ => Some(Cap::from_addr(
+                base,
+                read_register!(base + 0x34, u8) as usize,
+            )),
         };
         Some(Self {
             header,
@@ -312,7 +316,8 @@ impl Header0 {
                 32 => self.base_address_reg[id].setup(address as u32, cpu_address),
                 64 => {
                     self.base_address_reg[id].setup(address as u32, cpu_address);
-                    self.base_address_reg[id + 1].setup(address.overflowing_shr(32).0 as u32, cpu_address);
+                    self.base_address_reg[id + 1]
+                        .setup(address.overflowing_shr(32).0 as u32, cpu_address);
                 }
                 _ => unreachable!(),
             },
@@ -320,7 +325,8 @@ impl Header0 {
                 32 => self.base_address_reg[id].setup(address as u32, cpu_address),
                 64 => {
                     self.base_address_reg[id].setup(address as u32, cpu_address);
-                    self.base_address_reg[id + 1].setup(address.overflowing_shr(32).0 as u32, cpu_address);
+                    self.base_address_reg[id + 1]
+                        .setup(address.overflowing_shr(32).0 as u32, cpu_address);
                 }
                 _ => unreachable!(),
             },
@@ -355,7 +361,7 @@ pub struct Cap {
 
 impl Cap {
     pub fn from_addr(addr: usize, offset: usize) -> Self {
-        let address = addr+ offset;
+        let address = addr + offset;
         Self {
             id: read_register!(address, u8),
             next_pointer: read_register!(address + 0x1, u8),

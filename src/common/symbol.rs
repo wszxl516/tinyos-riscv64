@@ -1,7 +1,7 @@
 use core::ffi::CStr;
 
-use lazy_static::lazy_static;
 use crate::lds_address;
+use lazy_static::lazy_static;
 const MAGIC: [u8; 8] = [b's', b'y', b'm', b'b', b'o', b'l', b's', b'\0'];
 
 #[repr(C)]
@@ -18,7 +18,9 @@ impl Header {
     pub fn new() -> &'static Self {
         let addr = lds_address!(symbols_start);
         #[allow(invalid_reference_casting)]
-        unsafe { &*(addr as *const Header) }
+        unsafe {
+            &*(addr as *const Header)
+        }
     }
     pub fn symbol_start(&self) -> *const u8 {
         (lds_address!(symbols_start) + Header::SIZE) as *const u8

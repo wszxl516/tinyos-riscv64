@@ -1,3 +1,3 @@
 mod pci;
 #[allow(unused_imports)]
-pub use pci::{VirtioBlkTrans};
+pub use pci::VirtioBlkTrans;
