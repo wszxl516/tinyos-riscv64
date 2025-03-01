@@ -4,8 +4,7 @@ use super::exception::{exception_handler, Exception};
 use super::interrupt::{interrupt_handler, Interrupt};
 use crate::{get_bits, reg_read_p, reg_write_p};
 use core::arch::global_asm;
-use core::fmt::{Display, Formatter};
-
+use crate::display_with_field_name;
 pub static mut S_TRAP_FRAMES: Context = Context::empty();
 pub static mut M_TRAP_FRAMES: Context = Context::empty();
 
@@ -36,60 +35,58 @@ pub fn disable_irq_s() {
 }
 
 pub type Reg = usize;
+// Register 	ABI Name 	Description 	                Saver
+// x0 	        zero 	    Hard-wired zero 	            -
+// x1 	        ra 	        Return address 	                Caller
+// x2 	        sp 	        Stack pointer 	                Callee
+// x3 	        gp 	        Global pointer 	                -
+// x4 	        tp 	        Thread pointer 	                -
+// x5 	        t0 	        Temporary/   	                Caller
+// x6-7 	    t1-2 	    Temporaries 	                Caller
+// x8 	        s0/fp 	    Saved regsiter/frame         	Callee
+// x9 	        s1 	        Saved register 	                Callee
+// x10-11 	    a0-1 	    arguments/return                Caller
+// x12-17 	    a2-7 	    arguments 	                    Caller
+// x18-27 	    s2-11 	    Saved registers 	            Callee
+// x28-31 	    t3-6 	    Temporaries 	                Caller
 
-#[repr(C, align(16))]
-#[derive(Debug, Clone, Default)]
-pub(crate) struct Context {
-    pub ra: Reg,
-    pub sp: Reg,
-    gp: Reg,
-    tp: Reg,
-    t0: Reg,
-    t1: Reg,
-    t2: Reg,
-    s0: Reg,
-    s1: Reg,
-    a0: Reg,
-    a1: Reg,
-    a2: Reg,
-    a3: Reg,
-    a4: Reg,
-    a5: Reg,
-    a6: Reg,
-    a7: Reg,
-    s2: Reg,
-    s3: Reg,
-    s4: Reg,
-    s5: Reg,
-    s6: Reg,
-    s7: Reg,
-    s8: Reg,
-    s9: Reg,
-    s10: Reg,
-    s11: Reg,
-    t3: Reg,
-    t4: Reg,
-    t5: Reg,
-    t6: Reg,
-    pub pc: Reg,
-}
-
-impl Display for Context {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        let arr = self.array();
-        for x in (0..30).step_by(3) {
-            f.write_fmt(format_args!(
-                "x{:0>2} = {:#018x} x{:0>2} = {:#018x} x{:0>2} = {:#018x}\n",
-                x + 1,
-                arr[x],
-                x + 2,
-                arr[x + 1],
-                x + 3,
-                arr[x + 2]
-            ))
-            .unwrap();
-        }
-        f.write_fmt(format_args!("pc  = {:#018x}", arr[31]))
+display_with_field_name!{
+    "{: <3} = {:#018x}",
+    #[repr(C, align(16))]
+    #[derive(Debug, Clone, Default)]
+    pub struct Context {
+        pub ra: Reg,
+        pub sp: Reg,
+        gp: Reg,
+        tp: Reg,
+        t0: Reg,
+        t1: Reg,
+        t2: Reg,
+        s0: Reg,
+        s1: Reg,
+        a0: Reg,
+        a1: Reg,
+        a2: Reg,
+        a3: Reg,
+        a4: Reg,
+        a5: Reg,
+        a6: Reg,
+        a7: Reg,
+        s2: Reg,
+        s3: Reg,
+        s4: Reg,
+        s5: Reg,
+        s6: Reg,
+        s7: Reg,
+        s8: Reg,
+        s9: Reg,
+        s10: Reg,
+        s11: Reg,
+        t3: Reg,
+        t4: Reg,
+        t5: Reg,
+        t6: Reg,
+        pub pc: Reg,
     }
 }
 
@@ -133,11 +130,17 @@ impl Context {
     pub fn addr(&self) -> usize {
         self as *const Self as usize
     }
+    #[inline]
     pub fn replace(&mut self, data: &Self) {
-        *self = data.clone();
+        self.mut_array().copy_from_slice(data.array());
     }
-    pub fn array(&self) -> [usize; 32] {
-        unsafe { core::mem::transmute_copy(self) }
+    #[inline]
+    pub fn mut_array(&mut self) -> &mut [Reg; 32] {
+        unsafe { core::mem::transmute(self) }
+    }
+    #[inline]
+    pub fn array(&self) -> &[Reg; 32] {
+        unsafe { core::mem::transmute(self) }
     }
 }
 

@@ -12,6 +12,6 @@ pub fn arch_usleep(us: u64) -> u64 {
     while get_sys_time() < end_time {}
     us
 }
-pub fn sleep_ms(seconds: u64) {
-    arch_usleep(seconds * 1000);
+pub fn sleep_ms(ms: u64) {
+    arch_usleep(ms * 1000);
 }

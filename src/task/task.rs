@@ -84,12 +84,17 @@ impl TaskManager {
         if let Some(index) = self.current {
             self.tasks[index].context.replace(regs);
         }
+        let next = self.next();
+        regs.replace(&next.context)
+    }
+
+    fn next(&mut self) -> &Task{
         let index = self.current.get_or_insert(0);
         *index += 1;
         if *index == self.tasks.len() {
             *index = 0;
         }
-        regs.replace(&self.tasks[*index].context)
+        &self.tasks[*index]
     }
 }
 
@@ -119,7 +124,7 @@ fn demo0() -> ! {
             pr_notice!("demo0 - {}\n", x);
             sleep_ms(100);
         }
-        // unsafe { core::arch::asm!("ld t0, 0({tmp})", tmp = in(reg) usize::MAX) }
+        unsafe { core::arch::asm!("ld t0, 0({tmp})", tmp = in(reg) usize::MAX) }
     }
 }
 #[no_mangle]
