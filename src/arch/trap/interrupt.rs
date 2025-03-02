@@ -1,9 +1,8 @@
 #![allow(dead_code)]
 
-use crate::arch::timer::get_ticks;
+use crate::arch::timer::setup_timer_s;
 use crate::arch::trap::plic::platform_irq;
 use crate::arch::trap::trap::Context;
-use crate::task::task_switch;
 use crate::{pr_err, reg_clear_bit_p};
 
 #[repr(u32)]
@@ -34,9 +33,7 @@ pub fn interrupt_handler(interrupt: Interrupt, stack_addr: &mut Context) {
     match interrupt {
         Interrupt::SupervisorSoftwareInterrupt => {
             reg_clear_bit_p!(sip, 1 << 1);
-            if get_ticks() % 10 == 0 {
-                task_switch(stack_addr)
-            }
+            setup_timer_s(stack_addr);
         }
         Interrupt::SupervisorExternalInterrupt => {
             platform_irq();

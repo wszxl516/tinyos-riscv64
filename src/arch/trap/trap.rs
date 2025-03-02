@@ -2,9 +2,9 @@
 
 use super::exception::{exception_handler, Exception};
 use super::interrupt::{interrupt_handler, Interrupt};
+use crate::display_with_field_name;
 use crate::{get_bits, reg_read_p, reg_write_p};
 use core::arch::global_asm;
-use crate::display_with_field_name;
 pub static mut S_TRAP_FRAMES: Context = Context::empty();
 pub static mut M_TRAP_FRAMES: Context = Context::empty();
 
@@ -50,7 +50,7 @@ pub type Reg = usize;
 // x18-27 	    s2-11 	    Saved registers 	            Callee
 // x28-31 	    t3-6 	    Temporaries 	                Caller
 
-display_with_field_name!{
+display_with_field_name! {
     "{: <3} = {:#018x}",
     #[repr(C, align(16))]
     #[derive(Debug, Clone, Default)]

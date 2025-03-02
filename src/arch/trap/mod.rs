@@ -5,7 +5,7 @@ mod interrupt;
 pub(crate) mod plic;
 pub mod trap;
 
-use crate::arch::timer::enable_timer;
+use crate::arch::timer::enable_timer_m;
 use crate::{reg_clear_bit_p, reg_read_p, reg_update_p, reg_write_g, reg_write_p};
 use core::arch::asm;
 pub use trap::{disable_irq_m, disable_irq_s, enable_irq_m, enable_irq_s};
@@ -41,13 +41,13 @@ pub fn setup_trap() {
     // 7	6-5	 4-3	2	1	0
     // L	0	 A	    X	W	R
     reg_write_p!(pmpcfg0, 1 << 0 | 1 << 1 | 1 << 2 | 0b11 << 3);
-    reg_write_p!(pmpaddr0, usize::MAX >> 10);
+    reg_write_p!(pmpaddr0, usize::MAX >> 2 | 0b11);
     //supervisor mode trap stack
     reg_write_p!(sscratch, trap::S_TRAP_FRAMES.addr() as usize);
     reg_write_p!(mscratch, trap::M_TRAP_FRAMES.addr() as usize);
 
     //enable machine mode timer
-    enable_timer();
+    enable_timer_m();
     // enable all interrupt and exception
     enable_irq_m();
     unsafe { asm!("mret") }

@@ -1,15 +1,15 @@
-use super::super::config::{CLINT_BASE, CLOCK_HZ, MTIME_OFFSET};
-use crate::reg_read_a;
-#[inline(always)]
-pub fn get_sys_time() -> u64 {
-    reg_read_a!(CLINT_BASE + MTIME_OFFSET, u64)
-}
-
-#[inline(always)]
+use crate::arch::timer::get_ticks;
+// #[inline(always)]
+#[optimize(none)]
 pub fn arch_usleep(us: u64) -> u64 {
-    let start_time = get_sys_time();
-    let end_time = start_time + us * (CLOCK_HZ / 1_000_000);
-    while get_sys_time() < end_time {}
+    let start_time = get_ticks();
+    let end_time = start_time + us;
+    loop {
+        let current = get_ticks();
+        if current >= end_time {
+            break;
+        }
+    }
     us
 }
 pub fn sleep_ms(ms: u64) {

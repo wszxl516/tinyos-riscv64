@@ -72,7 +72,6 @@ pub fn flush_tlb() {
 }
 
 pub fn enable_mmu(root: PhyAddr) {
-    pr_notice!("{:#x} \r\n", root.0);
     reg_write_p!(satp, config::SATP_SV39 | root.0 >> PAGE_SHIFT);
     flush_tlb()
 }

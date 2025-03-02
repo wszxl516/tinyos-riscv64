@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+use crate::arch::timer::set_soft_timer;
 use crate::arch::trap::trap::Context;
 use crate::common::sleep::sleep_ms;
 use crate::mm::config::PAGE_SIZE;
@@ -25,6 +27,11 @@ impl<const SIZE: usize> Stack<SIZE> {
 }
 type TaskEntry = fn() -> !;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum State {
+    Ready,
+    Running,
+}
 #[repr(C)]
 #[derive(Debug, Clone)]
 struct Task {
@@ -34,6 +41,7 @@ struct Task {
     func: TaskEntry,
     stack: Stack<STACK_SIZE>,
     stack_size: usize,
+    state: State,
 }
 
 impl Display for Task {
@@ -73,6 +81,7 @@ impl TaskManager {
             func,
             stack_size: stack.size(),
             stack,
+            state: State::Ready,
         };
         task.context.ra = task.func as usize;
         task.context.sp = task.stack.top();
@@ -81,20 +90,38 @@ impl TaskManager {
     }
     #[no_mangle]
     pub fn switch(&mut self, regs: &mut Context) {
+        if self.tasks.len() == 0 {
+            return;
+        }
         if let Some(index) = self.current {
             self.tasks[index].context.replace(regs);
+            self.tasks[index].state = State::Ready;
         }
-        let next = self.next();
-        regs.replace(&next.context)
+        let next = loop {
+            let next = self.next();
+            if next.state == State::Ready {
+                // pr_info!("next: {}\n", next.name);
+                break next;
+            }
+        };
+        regs.replace(&next.context);
+        next.state = State::Running;
     }
-
-    fn next(&mut self) -> &Task{
-        let index = self.current.get_or_insert(0);
-        *index += 1;
-        if *index == self.tasks.len() {
-            *index = 0;
-        }
-        &self.tasks[*index]
+    fn current(&mut self) -> &mut Task {
+        &mut self.tasks[*self.current.get_or_insert(0)]
+    }
+    fn next(&mut self) -> &mut Task {
+        let next = match &mut self.current {
+            None => *self.current.get_or_insert(0),
+            Some(next) => {
+                *next += 1;
+                if *next >= self.tasks.len() {
+                    *next = 0;
+                };
+                *next
+            }
+        };
+        &mut self.tasks[next]
     }
 }
 
@@ -124,7 +151,8 @@ fn demo0() -> ! {
             pr_notice!("demo0 - {}\n", x);
             sleep_ms(100);
         }
-        unsafe { core::arch::asm!("ld t0, 0({tmp})", tmp = in(reg) usize::MAX) }
+        // unsafe { core::arch::asm!("ld t0, 0({tmp})", tmp = in(reg) usize::MAX) }
+        set_soft_timer(1000 * 1000, 0);
     }
 }
 #[no_mangle]

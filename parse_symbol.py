@@ -61,7 +61,8 @@ def main(elf_path: str, dist_path: str, section_size: int, verbose: bool):
     cmd = " ".join((rust_nm,
                     "--defined-only", "--print-size",
                     "--print-armap", "--size-sort",
-                    "--radix=x", elf_path))
+                    "--radix=x", "--no-weak", 
+                    "--numeric-sort", elf_path))
     print(cmd)
     res = subprocess.getoutput(cmd)
     all_len = 0

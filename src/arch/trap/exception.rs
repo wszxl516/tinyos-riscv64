@@ -50,8 +50,8 @@ fn dump_stack(regs: &Regs) {
     if regs.epc != 0 {
         pr_err!("code: ");
         let current_code = reg_read_a!(regs.epc, u16);
-        let code = if current_code & 0b11 == 0b11{
-            (current_code as u32)|((reg_read_a!(regs.epc + 2, u16) as u32) << 16)
+        let code = if current_code & 0b11 == 0b11 {
+            (current_code as u32) | ((reg_read_a!(regs.epc + 2, u16) as u32) << 16)
         }
         // compressed instruction
         else {

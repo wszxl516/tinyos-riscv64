@@ -1,17 +1,20 @@
 .align 4
 .globl m_trap_handler
-.extern setup_timer
+.extern setup_timer_m
 m_trap_handler:
     .align 4
+    csrw mie, zero
     csrrw sp, mscratch, sp
     SAVE_G_REG sp
     csrrw sp, mscratch, sp
-    call setup_timer
+    call setup_timer_m
     //trigger a supervisor software interrupt
     li   t0, 1 << 1
     csrw sip, t0
     csrrw sp, mscratch, sp
     csrr t0, mepc
+    li t5, 0xfff
+    csrw mie, t5
     REST_G_REG sp
     csrrw sp, mscratch, sp
     mret
