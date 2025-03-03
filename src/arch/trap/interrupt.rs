@@ -1,12 +1,14 @@
 #![allow(dead_code)]
 
+use crate::arch::plic::platform_irq;
 use crate::arch::timer::setup_timer_s;
-use crate::arch::trap::plic::platform_irq;
 use crate::arch::trap::trap::Context;
+use crate::impl_numeric_enum;
 use crate::{pr_err, reg_clear_bit_p};
 
-#[repr(u32)]
-pub enum Interrupt {
+impl_numeric_enum! {
+    u32,
+    pub Interrupt [
     //1 0 RESERVED
     SupervisorSoftwareInterrupt = 1,
     //1 2 RESERVED
@@ -21,12 +23,7 @@ pub enum Interrupt {
     MachineExternalInterrupt = 11,
     //1 12–15 RESERVED
     // 1 ≥16 DESIGNATED FOR PLATFORM USE
-}
-
-impl Interrupt {
-    pub fn from_u32(value: u32) -> Self {
-        unsafe { core::mem::transmute(value) }
-    }
+    ]
 }
 
 pub fn interrupt_handler(interrupt: Interrupt, stack_addr: &mut Context) {
@@ -44,5 +41,8 @@ pub fn interrupt_handler(interrupt: Interrupt, stack_addr: &mut Context) {
         Interrupt::MachineSoftwareInterrupt => unreachable!("Machine software Interrupt."),
         Interrupt::MachineTimerInterrupt => unreachable!("Machine timer Interrupt."),
         Interrupt::MachineExternalInterrupt => unreachable!("Machine External Interrupt."),
+        Interrupt::Unknown(v) => {
+            panic!("Unknown Interrupt: {:#x}\n", v)
+        }
     }
 }

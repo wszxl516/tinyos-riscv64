@@ -13,6 +13,10 @@ fdt = "0.1.5"
 spin = {version = "0.9.8", default-features = false, features = ["mutex", "spin_mutex", "rwlock"]}
 paste = "1.0.14"
 
+[features]
+default = []
+debug = []
+
 [profile.release]
 opt-level = "z"
 strip = true

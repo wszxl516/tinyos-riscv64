@@ -1,7 +1,7 @@
 #![allow(dead_code)]
-use crate::arch::timer::set_soft_timer;
 use crate::arch::trap::trap::Context;
 use crate::common::sleep::sleep_ms;
+use crate::impl_numeric_enum;
 use crate::mm::config::PAGE_SIZE;
 use crate::{pr_info, pr_notice};
 use alloc::boxed::Box;
@@ -26,17 +26,21 @@ impl<const SIZE: usize> Stack<SIZE> {
     }
 }
 type TaskEntry = fn() -> !;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum State {
-    Ready,
-    Running,
+impl_numeric_enum! {
+    u8,
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub State [
+        Sleeping = 1,
+        Ready = 2,
+        Running = 3,
+        Exit = 4,
+    ]
 }
 #[repr(C)]
 #[derive(Debug, Clone)]
 struct Task {
     pub context: Context,
-    id: u32,
+    id: usize,
     pub name: &'static str,
     func: TaskEntry,
     stack: Stack<STACK_SIZE>,
@@ -72,7 +76,7 @@ impl TaskManager {
             current: None,
         }
     }
-    pub fn add(&mut self, id: u32, name: &'static str, func: TaskEntry) {
+    pub fn add(&mut self, id: usize, name: &'static str, func: TaskEntry) {
         let stack = Stack::<STACK_SIZE>::new();
         let mut task = Task {
             context: Context::default(),
@@ -95,20 +99,29 @@ impl TaskManager {
         }
         if let Some(index) = self.current {
             self.tasks[index].context.replace(regs);
-            self.tasks[index].state = State::Ready;
+            if self.tasks[index].state == State::Running {
+                self.tasks[index].state = State::Ready;
+            }
         }
+
         let next = loop {
             let next = self.next();
             if next.state == State::Ready {
-                // pr_info!("next: {}\n", next.name);
                 break next;
             }
         };
         regs.replace(&next.context);
         next.state = State::Running;
     }
-    fn current(&mut self) -> &mut Task {
-        &mut self.tasks[*self.current.get_or_insert(0)]
+    fn set_state_with_pid(&mut self, pid: usize, state: State) {
+        for task in &mut self.tasks {
+            if task.id == pid {
+                task.state = state.clone();
+            }
+        }
+    }
+    fn current_pid(&self) -> usize {
+        self.tasks[self.current.unwrap_or(0)].id
     }
     fn next(&mut self) -> &mut Task {
         let next = match &mut self.current {
@@ -127,6 +140,11 @@ impl TaskManager {
 
 pub fn init_task() {
     let mut mgr = TASK_MGR.lock();
+    mgr.add(0, "idle", || loop {
+        unsafe {
+            core::arch::riscv64::wfi();
+        }
+    });
     mgr.add(1, "demo0", demo0);
     mgr.add(2, "demo1", demo1);
     pr_notice!("{:-^50} \r\n", "");
@@ -152,8 +170,20 @@ fn demo0() -> ! {
             sleep_ms(100);
         }
         // unsafe { core::arch::asm!("ld t0, 0({tmp})", tmp = in(reg) usize::MAX) }
-        set_soft_timer(1000 * 1000, 0);
     }
+}
+
+#[inline]
+pub fn current_pid() -> usize {
+    TASK_MGR.lock().current_pid()
+}
+#[inline]
+pub fn set_state_with_pid(pid: usize, state: State) {
+    TASK_MGR.lock().set_state_with_pid(pid, state);
+}
+#[inline]
+pub fn set_ready_with_pid(pid: usize) {
+    set_state_with_pid(pid, State::Ready);
 }
 #[no_mangle]
 pub fn task_switch(regs: &mut Context) {

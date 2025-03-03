@@ -15,17 +15,15 @@ mod device;
 mod mm;
 mod task;
 
-use crate::arch::trap::plic::plic_init;
 use crate::arch::trap::{disable_irq_s, enable_irq_s};
-use crate::device::console::uart_init;
 use arch::cpu::dump_features;
 use config::LOGO_STR;
 use core::panic::PanicInfo;
+use device::console::uart_irq_init;
 
 pub fn kernel_main() -> ! {
     disable_irq_s();
-    plic_init();
-    uart_init();
+    uart_irq_init();
     pr_notice!("{}\n\r", LOGO_STR);
     dump_features();
     mm::init_heap();

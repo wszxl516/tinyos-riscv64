@@ -1,6 +1,6 @@
 #![allow(dead_code)]
-
-use crate::arch::trap::plic::register_handler;
+use crate::arch::plic::register_handler;
+use crate::config::USRT_IRQ_NUM;
 use arrayvec::ArrayVec;
 use core::fmt;
 use core::fmt::Write;
@@ -19,24 +19,21 @@ pub fn uart_init() {
         };
         STDIO.0.init();
     }
-    register_handler(0x0a, uart_irq_handler);
-    unsafe { UART_BUFFER = Some(ArrayVec::new()) }
 }
 
-static mut UART_BUFFER: Option<ArrayVec<u8, 256>> = None;
+pub fn uart_irq_init() {
+    register_handler(USRT_IRQ_NUM, uart_irq_handler);
+}
+
+static mut UART_BUFFER: ArrayVec<char, 64> = ArrayVec::new_const();
 
 #[no_mangle]
 fn uart_irq_handler() {
     unsafe {
-        match &mut UART_BUFFER {
-            None => {}
-            Some(buffer) => {
-                if buffer.is_full() {
-                    buffer.clear()
-                }
-                buffer.push(STDIO.0.get_c())
-            }
+        if UART_BUFFER.is_full() {
+            UART_BUFFER.clear()
         }
+        UART_BUFFER.push(STDIO.read_char())
     }
 }
 
@@ -72,17 +69,12 @@ pub fn puts(args: fmt::Arguments) {
     unsafe { STDIO.write_fmt(args) }.unwrap();
 }
 
-pub fn gets() -> Option<u8> {
+pub fn getc() -> Option<char> {
     unsafe {
-        match &mut UART_BUFFER {
-            None => None,
-            Some(buffer) => {
-                if buffer.is_empty() {
-                    None
-                } else {
-                    buffer.pop()
-                }
-            }
+        if UART_BUFFER.is_empty() {
+            None
+        } else {
+            UART_BUFFER.pop()
         }
     }
 }

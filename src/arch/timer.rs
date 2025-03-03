@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 use crate::arch::trap::trap::Context;
 use crate::config::{CLINT_BASE, CLOCK_HZ};
-use crate::pr_warn;
-use crate::task::task_switch;
+use crate::pr_debug;
+use crate::task::{set_ready_with_pid, task_switch};
 use core::u64;
 use tock_registers::interfaces::{Readable, Writeable};
 use tock_registers::registers::ReadWrite;
@@ -16,13 +16,13 @@ impl SoftTimer {
         Self { us: 0, pid: 0 }
     }
     pub const fn used(&self) -> bool {
-        self.us != 0
+        self.us != 0 && self.pid != 0
     }
 }
 pub struct Clint {
     base_addr: usize,
     one_ticks: u64,
-    timers: [SoftTimer; 8],
+    timers: [SoftTimer; 16],
 }
 
 impl Clint {
@@ -32,7 +32,7 @@ impl Clint {
         Self {
             base_addr: addr,
             one_ticks: hz / 1000 / 1000,
-            timers: [SoftTimer::empty(); 8],
+            timers: [SoftTimer::empty(); 16],
         }
     }
 
@@ -73,17 +73,18 @@ impl Clint {
             if !t.used() {
                 t.pid = pid;
                 t.us = us + current;
-                pr_warn!("set_timer: {:#x?}\n", t);
+                pr_debug!("set_timer: {:#x?}\n", t);
                 break;
             }
         }
         current + us
     }
-    pub fn fetch_soft_timer(&mut self) {
+    pub fn complete_soft_timer(&mut self) {
         let current = self.ticks();
         for t in &mut self.timers {
             if t.used() && current >= t.us {
-                pr_warn!("fetch_timer: {:#x?}\n", t);
+                pr_debug!("fetch_timer: {:#x?}\n", t);
+                set_ready_with_pid(t.pid);
                 *t = SoftTimer::empty();
             }
         }
@@ -111,7 +112,7 @@ pub fn enable_timer_m() {
 
 pub fn setup_timer_s(stack_addr: &mut Context) {
     unsafe {
-        CLINT.fetch_soft_timer();
+        CLINT.complete_soft_timer();
     }
     if get_ticks() % (1000 * 10) == 0 {
         task_switch(stack_addr)

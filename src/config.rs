@@ -21,7 +21,7 @@ pub const RTC_BASE_ADDR: usize = 0x101000;
 pub const A_SECOND: u64 = 1000000;
 //https://github.com/pulp-platform/clint
 pub const CLINT_BASE: usize = 0x2000000;
-
+pub const USRT_IRQ_NUM: usize = 0x0a;
 pub const PLIC_BASE: usize = 0xc000000;
 pub const CLOCK_HZ: u64 = 10_000_000;
 const ONE_MB: usize = 0x100000;

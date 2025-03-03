@@ -1,16 +1,17 @@
 #![allow(dead_code)]
-
+//https://five-embeddev.com/riscv-isa-manual/latest/supervisor.html
 mod exception;
 mod interrupt;
-pub(crate) mod plic;
+pub mod syscall;
 pub mod trap;
-
 use crate::arch::timer::enable_timer_m;
+use crate::device::console::uart_init;
 use crate::{reg_clear_bit_p, reg_read_p, reg_update_p, reg_write_g, reg_write_p};
 use core::arch::asm;
 pub use trap::{disable_irq_m, disable_irq_s, enable_irq_m, enable_irq_s};
 
 pub fn setup_trap() {
+    uart_init();
     disable_irq_m();
     //set MPP to 1 (supervisor mode)
     //mstatus.SIE = 1

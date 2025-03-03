@@ -1,13 +1,10 @@
-use super::super::super::config::PLIC_BASE;
+#![allow(dead_code)]
+//https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc
+use super::super::config::PLIC_BASE;
 use crate::{pr_err, reg_read_a, reg_write_a};
 
 const NUM_IRQ: usize = 128;
-//https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc
-static mut PLIC: Plic = Plic {
-    base_addr: 0,
-    hart_id: 0,
-    plic_handlers: [None; NUM_IRQ],
-};
+static mut PLIC: Plic = Plic::new(PLIC_BASE, 0);
 
 pub enum HandlerReturn {
     IntNoReschedule = 0,
@@ -27,10 +24,10 @@ impl Plic {
     const PRIORITY_THRESHOLD_INTERVAL: usize = 0x2000;
     const PLIC_CLAIM_OFFSET: usize = 0x201004;
     const PLIC_CLAIM_INTERVAL: usize = 0x2000;
-    pub fn new(base_addr: usize) -> Self {
+    pub const fn new(base_addr: usize, hart_id: usize) -> Self {
         Self {
             base_addr,
-            hart_id: 0,
+            hart_id,
             plic_handlers: [None; NUM_IRQ],
         }
     }
@@ -73,18 +70,9 @@ impl Plic {
     }
 }
 
-pub fn plic_init() {
-    unsafe {
-        PLIC.hart_id = 0;
-        PLIC.base_addr = PLIC_BASE;
-    }
-}
-
 pub fn register_handler(irq: usize, handler: fn()) {
     unsafe {
         PLIC.plic_handlers[irq] = Some(handler);
-    }
-    unsafe {
         PLIC.enable(irq);
     }
 }

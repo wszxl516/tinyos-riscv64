@@ -5,7 +5,6 @@ use crate::mm::page::PageTable;
 use bitflags::bitflags;
 use core::fmt::{Display, Formatter};
 
-//https://five-embeddev.com/riscv-isa-manual/latest/supervisor.html
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Entry(usize);

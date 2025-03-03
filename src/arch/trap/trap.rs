@@ -3,6 +3,7 @@
 use super::exception::{exception_handler, Exception};
 use super::interrupt::{interrupt_handler, Interrupt};
 use crate::display_with_field_name;
+use crate::impl_numeric_enum;
 use crate::{get_bits, reg_read_p, reg_write_p};
 use core::arch::global_asm;
 pub static mut S_TRAP_FRAMES: Context = Context::empty();
@@ -57,35 +58,35 @@ display_with_field_name! {
     pub struct Context {
         pub ra: Reg,
         pub sp: Reg,
-        gp: Reg,
-        tp: Reg,
-        t0: Reg,
-        t1: Reg,
-        t2: Reg,
-        s0: Reg,
-        s1: Reg,
-        a0: Reg,
-        a1: Reg,
-        a2: Reg,
-        a3: Reg,
-        a4: Reg,
-        a5: Reg,
-        a6: Reg,
-        a7: Reg,
-        s2: Reg,
-        s3: Reg,
-        s4: Reg,
-        s5: Reg,
-        s6: Reg,
-        s7: Reg,
-        s8: Reg,
-        s9: Reg,
-        s10: Reg,
-        s11: Reg,
-        t3: Reg,
-        t4: Reg,
-        t5: Reg,
-        t6: Reg,
+        pub gp: Reg,
+        pub tp: Reg,
+        pub t0: Reg,
+        pub t1: Reg,
+        pub t2: Reg,
+        pub s0: Reg,
+        pub s1: Reg,
+        pub a0: Reg,
+        pub a1: Reg,
+        pub a2: Reg,
+        pub a3: Reg,
+        pub a4: Reg,
+        pub a5: Reg,
+        pub a6: Reg,
+        pub a7: Reg,
+        pub s2: Reg,
+        pub s3: Reg,
+        pub s4: Reg,
+        pub s5: Reg,
+        pub s6: Reg,
+        pub s7: Reg,
+        pub s8: Reg,
+        pub s9: Reg,
+        pub s10: Reg,
+        pub s11: Reg,
+        pub t3: Reg,
+        pub t4: Reg,
+        pub t5: Reg,
+        pub t6: Reg,
         pub pc: Reg,
     }
 }
@@ -146,7 +147,7 @@ impl Context {
 
 #[derive(Debug)]
 pub struct Regs {
-    pub context: Context,
+    pub context: &'static mut Context,
     pub ra: usize,
     pub epc: usize,
     pub tval: usize,
@@ -158,24 +159,20 @@ pub struct Trap {
     cause: usize,
 }
 
-#[derive(Debug)]
-#[repr(u32)]
-pub enum ExceptionType {
-    Exception = 0,
-    Interrupt = 1,
-}
-
-impl ExceptionType {
-    pub fn from_u32(value: u32) -> Self {
-        unsafe { core::mem::transmute(value) }
-    }
+impl_numeric_enum! {
+    u32,
+    #[derive(Debug, Clone, Copy)]
+    pub ExceptionType [
+        Exception = 0,
+        Interrupt = 1,
+    ]
 }
 
 impl Trap {
-    pub fn new(sp: &mut Context, ra: usize) -> Self {
+    pub fn new(sp: &'static mut Context, ra: usize) -> Self {
         Self {
             regs: Regs {
-                context: sp.clone(),
+                context: sp,
                 ra,
                 epc: reg_read_p!(sepc),
                 tval: reg_read_p!(stval),
@@ -185,7 +182,7 @@ impl Trap {
     }
     #[inline(always)]
     pub fn exception_type(&self) -> ExceptionType {
-        ExceptionType::from_u32(get_bits!(self.cause, 63, 1) as u32)
+        ExceptionType::from_value(get_bits!(self.cause, 63, 1) as u32)
     }
     #[inline(always)]
     pub fn exception_code(&self) -> u32 {
@@ -194,15 +191,20 @@ impl Trap {
 }
 
 #[no_mangle]
-pub fn handle_trap(stack: &mut Context, ra: usize) {
-    let trap = Trap::new(stack, ra);
+pub fn handle_trap(stack: &'static mut Context, ra: usize) {
+    let mut trap = Trap::new(stack, ra);
     match trap.exception_type() {
-        ExceptionType::Interrupt => {
-            interrupt_handler(Interrupt::from_u32(trap.exception_code()), stack)
-        }
+        ExceptionType::Interrupt => interrupt_handler(
+            Interrupt::from_value(trap.exception_code()),
+            trap.regs.context,
+        ),
 
         ExceptionType::Exception => {
-            exception_handler(Exception::from_u32(trap.exception_code()), &trap.regs)
+            exception_handler(Exception::from_value(trap.exception_code()), &mut trap.regs)
+        }
+
+        ExceptionType::Unknown(v) => {
+            panic!("Unknown ExceptionType: {:#x}\n", v)
         }
     }
 }
