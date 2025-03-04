@@ -10,7 +10,9 @@ unsafe extern "C" fn _start() -> ! {
 	.balign 4
 	.option pic
 	.option norvc
-
+    csrw mie, zero
+    csrw sie, zero
+    
     la t0, bss_start
     la t1, bss_end
 bss_clear:
@@ -22,8 +24,7 @@ bss_clear:
     sd a0, 0(t0)
     sd a1, 8(t0)
     sd a2, 16(t0)
-    csrw mie, zero
-    csrw sie, zero
+
     csrr t0, mhartid
     bne  t0, zero, loop
     la   gp, global_pointer

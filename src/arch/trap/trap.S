@@ -12,7 +12,6 @@ m_trap_handler:
     li   t0, 1 << 1
     csrw sip, t0
     csrrw sp, mscratch, sp
-    csrr t0, mepc
     li t5, 0xfff
     csrw mie, t5
     REST_G_REG sp

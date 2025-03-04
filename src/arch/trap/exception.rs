@@ -35,12 +35,12 @@ fn dump_stack(regs: &Regs) {
     pr_err!("call stack: \n\t#1: {:#x} ", regs.epc);
     match find_symbol(regs.epc) {
         Some(sym) => pr_err!("({}+{})\n", sym.name, regs.epc - sym.addr),
-        None => {}
+        None => pr_err!("\n")
     }
     pr_err!("\t#0: {:#x} ", regs.ra);
     match find_symbol(regs.ra) {
         Some(sym) => pr_err!("({}+{})\n", sym.name, regs.ra - sym.addr),
-        None => {}
+        None => pr_err!("\n")
     }
     pr_err!("tval: {:#x}\n", regs.tval);
     if regs.epc != 0 {

@@ -2,12 +2,8 @@
 
 use super::exception::{exception_handler, Exception};
 use super::interrupt::{interrupt_handler, Interrupt};
-use crate::display_with_field_name;
-use crate::impl_numeric_enum;
-use crate::{get_bits, reg_read_p, reg_write_p};
+use crate::{display_with_field_name, impl_numeric_enum, get_bits, reg_read_p, reg_write_p};
 use core::arch::global_asm;
-pub static mut S_TRAP_FRAMES: Context = Context::empty();
-pub static mut M_TRAP_FRAMES: Context = Context::empty();
 
 global_asm!(include_str!("macros.S"), include_str!("trap.S"));
 extern "C" {
