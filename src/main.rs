@@ -17,10 +17,10 @@ mod task;
 
 use crate::arch::trap::{disable_irq_s, enable_irq_s};
 use arch::cpu::dump_features;
+use common::sleep::sleep_ms;
 use config::LOGO_STR;
 use core::panic::PanicInfo;
 use device::console::uart_irq_init;
-
 pub fn kernel_main() -> ! {
     disable_irq_s();
     uart_irq_init();
@@ -30,9 +30,61 @@ pub fn kernel_main() -> ! {
     mm::setup_mmu();
     device::pci::init_pci();
     device::pci::find_virt();
-    task::init_task();
+    task::task_add(1, "demo0", demo0, 4);
+    task::task_add(2, "demo1", demo1, 4);
+    task::task_add(3, "stats", stats, 1);
+    pr_notice!("finished task init!\n");
     enable_irq_s();
     loop {}
+}
+
+#[optimize(none)]
+fn demo1() -> ! {
+    loop {
+        for x in 0..10 {
+            pr_info!("demo1 - {}\n", x);
+            sleep_ms(100);
+        }
+    }
+}
+
+#[optimize(none)]
+fn demo0() -> ! {
+    loop {
+        for x in 0..10 {
+            pr_notice!("demo0 - {}\n", x);
+            sleep_ms(100);
+        }
+    }
+}
+#[optimize(none)]
+fn stats() -> ! {
+    loop {
+        pr_warn!(
+            "|{:<10}|{:<10}|{:<10}|{:<10}|{:<10}\n",
+            "name",
+            "pid",
+            "priority",
+            "total",
+            "state"
+        );
+        disable_irq_s();
+        {
+            task::each_task(|t| {
+                pr_warn!(
+                    "|{:<10}|{:<10}|{:<10}|{:<10}|{:<10}\n",
+                    t.name,
+                    t.id,
+                    t.priority,
+                    t.total_time,
+                    t.state
+                )
+            });
+        }
+
+        enable_irq_s();
+        sleep_ms(1000);
+    }
 }
 
 #[panic_handler]

@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 use crate::arch::trap::trap::Context;
-use crate::config::{CLINT_BASE, CLOCK_HZ};
+use crate::config::{CLINT_BASE, ONE_TICK, TASK_SWITCH_INTERVAL_US};
 use crate::pr_debug;
-use crate::task::{set_ready_with_pid, task_switch};
+use crate::task::{set_task_ready_by_pid, task_switch};
 use core::u64;
 use tock_registers::interfaces::{Readable, Writeable};
 use tock_registers::registers::ReadWrite;
@@ -28,10 +28,10 @@ pub struct Clint {
 impl Clint {
     const MTIME_OFFSET: usize = 0xbff8;
     const MTIME_CMP_OFFSET: usize = 0x4000;
-    pub const fn new(addr: usize, hz: u64) -> Self {
+    pub const fn new(addr: usize, tick: u64) -> Self {
         Self {
             base_addr: addr,
-            one_ticks: hz / 1000 / 1000,
+            one_ticks: tick,
             timers: [SoftTimer::empty(); 16],
         }
     }
@@ -84,14 +84,14 @@ impl Clint {
         for t in &mut self.timers {
             if t.used() && current >= t.us {
                 pr_debug!("fetch_timer: {:#x?}\n", t);
-                set_ready_with_pid(t.pid);
+                set_task_ready_by_pid(t.pid);
                 *t = SoftTimer::empty();
             }
         }
     }
 }
 
-static mut CLINT: Clint = Clint::new(CLINT_BASE, CLOCK_HZ);
+static mut CLINT: Clint = Clint::new(CLINT_BASE, ONE_TICK);
 
 #[no_mangle]
 pub fn setup_timer_m() {
@@ -114,7 +114,7 @@ pub fn setup_timer_s(stack_addr: &mut Context) {
     unsafe {
         CLINT.complete_soft_timer();
     }
-    if get_ticks() % (1000 * 10) == 0 {
+    if get_ticks() % TASK_SWITCH_INTERVAL_US == 0 {
         task_switch(stack_addr)
     }
 }

@@ -18,12 +18,13 @@ pub const SMP_COUNT: usize = 1;
 //google goldfish
 pub const RTC_BASE_ADDR: usize = 0x101000;
 //system realtime clock with 1 second resolution.
-pub const A_SECOND: u64 = 1000000;
 //https://github.com/pulp-platform/clint
 pub const CLINT_BASE: usize = 0x2000000;
 pub const USRT_IRQ_NUM: usize = 0x0a;
 pub const PLIC_BASE: usize = 0xc000000;
 pub const CLOCK_HZ: u64 = 10_000_000;
+pub const ONE_TICK: u64 = CLOCK_HZ / 1000 / 1000;
+pub const TASK_SWITCH_INTERVAL_US: u64 = 1000 * 1;
 const ONE_MB: usize = 0x100000;
 pub const MEM_SIZE: usize = ONE_MB * 64;
 
