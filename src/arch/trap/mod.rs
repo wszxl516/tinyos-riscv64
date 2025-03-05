@@ -8,10 +8,24 @@ use crate::arch::timer::enable_timer_m;
 use crate::device::console::uart_init;
 use crate::{reg_clear_bit_p, reg_read_p, reg_update_p, reg_write_g, reg_write_p};
 use core::arch::asm;
-use trap::Context;
 pub use trap::{disable_irq_m, disable_irq_s, enable_irq_m, enable_irq_s};
-pub static mut S_TRAP_STACK: Context = Context::empty();
-pub static mut M_TRAP_STACK: Context = Context::empty();
+
+#[repr(C, align(16))]
+pub struct TrapStack<const SIZE: usize>([u8; SIZE]);
+impl<const SIZE: usize> TrapStack<SIZE> {
+    pub const fn new() -> Self {
+        Self([0u8; SIZE])
+    }
+    pub const fn size(&self) -> usize {
+        SIZE
+    }
+    pub fn stack_top(&self) -> usize {
+        self.0.as_ptr_range().end.addr()
+    }
+}
+static mut S_TRAP_STACK: TrapStack<0x800> = TrapStack::new();
+static mut M_TRAP_STACK: TrapStack<0x800> = TrapStack::new();
+
 pub fn setup_trap() {
     uart_init();
     disable_irq_m();
@@ -41,8 +55,8 @@ pub fn setup_trap() {
     reg_write_p!(pmpcfg0, 1 << 0 | 1 << 1 | 1 << 2 | 0b11 << 3);
     reg_write_p!(pmpaddr0, usize::MAX >> 2 | 0b11);
     //supervisor mode trap stack
-    reg_write_p!(sscratch, S_TRAP_STACK.addr());
-    reg_write_p!(mscratch, M_TRAP_STACK.addr());
+    reg_write_p!(sscratch, S_TRAP_STACK.stack_top());
+    reg_write_p!(mscratch, M_TRAP_STACK.stack_top());
     //external interrupt-enable | timer interrupt-enable | software interrupt-enable
     reg_update_p!(sie, 1 << 9 | 1 << 5 | 1 << 1);
     reg_update_p!(mie, 1 << 9 | 1 << 5 | 1 << 1);

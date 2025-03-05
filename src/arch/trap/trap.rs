@@ -2,7 +2,7 @@
 
 use super::exception::{exception_handler, Exception};
 use super::interrupt::{interrupt_handler, Interrupt};
-use crate::{display_with_field_name, impl_numeric_enum, get_bits, reg_read_p, reg_write_p};
+use crate::{display_with_field_name, get_bits, impl_numeric_enum, reg_read_p, reg_write_p};
 use core::arch::global_asm;
 
 global_asm!(include_str!("macros.S"), include_str!("trap.S"));
@@ -49,7 +49,7 @@ pub type Reg = usize;
 
 display_with_field_name! {
     "{: <3} = {:#018x}",
-    #[repr(C, align(16))]
+    #[repr(C, align(8))]
     #[derive(Debug, Clone, Default)]
     pub struct Context {
         pub ra: Reg,
