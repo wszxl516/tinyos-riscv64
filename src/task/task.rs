@@ -1,9 +1,11 @@
 #![allow(dead_code)]
 use super::queue::TaskQueue;
 use crate::arch::trap::trap::Context;
+use crate::config::TASK_SWITCH_INTERVAL_US;
 use crate::impl_numeric_enum;
 use crate::mm::config::PAGE_SIZE;
 use alloc::boxed::Box;
+use core::cmp::{max, min};
 use core::fmt::{Display, Formatter, Result};
 use core::ops::{Deref, DerefMut};
 use lazy_static::lazy_static;
@@ -66,7 +68,7 @@ pub struct Task {
     stack: Stack<STACK_SIZE>,
     pub state: State,
     pub priority: u8,
-    time_slice: u8,
+    pub time_slice: u8,
     pub total_time: u64,
 }
 
@@ -138,7 +140,7 @@ impl TaskManager {
     }
     #[no_mangle]
     pub fn switch(&mut self, regs: &mut Context) {
-        if self.tasks.len() == 0 {
+        if self.tasks.len() == 1 {
             return;
         }
         //Weighted Round-Robin Scheduling
@@ -148,8 +150,23 @@ impl TaskManager {
                 if current.state == State::Running {
                     current.state = State::Ready;
                 }
-                current.total_time += current.priority as u64;
-                current.time_slice = current.priority;
+                if current.state != State::Sleeping {
+                    current.total_time += current.priority as u64;
+                    current.time_slice = current.priority;
+                } else {
+                    //When a task is sleeping, reduce the time slice of the task
+                    if current.time_slice != 0 {
+                        let used_slice = max(current.priority - current.time_slice, 1);
+                        current.total_time += used_slice as u64;
+                        current.time_slice -= used_slice;
+                        if current.time_slice == 0 {
+                            current.time_slice = 1
+                        }
+                    } else {
+                        current.total_time += current.priority as u64;
+                        current.time_slice = current.priority;
+                    }
+                }
             } else {
                 current.time_slice -= 1;
                 return;
@@ -169,6 +186,19 @@ impl TaskManager {
         for task in self.tasks.deref_mut() {
             if task.id == pid {
                 task.state = state.clone();
+            }
+        }
+    }
+    fn wakeup_by_pid(&mut self, pid: usize, sleep_time: u64) {
+        for task in self.tasks.deref_mut() {
+            if task.id == pid {
+                task.state = State::Ready;
+                let sleep_slice = min(
+                    (sleep_time / TASK_SWITCH_INTERVAL_US / 10) as u8,
+                    max(task.priority / 4, 1),
+                );
+                // When the task is wakeup, increase the time slice
+                task.time_slice += min(sleep_slice, task.priority - task.time_slice);
             }
         }
     }
@@ -196,8 +226,8 @@ pub fn set_task_state_by_pid(pid: usize, state: State) {
     TASK_MGR.write().set_state_by_pid(pid, state);
 }
 #[inline]
-pub fn set_task_ready_by_pid(pid: usize) {
-    set_task_state_by_pid(pid, State::Ready);
+pub fn wakeup_by_pid(pid: usize, sleep_time: u64) {
+    TASK_MGR.write().wakeup_by_pid(pid, sleep_time)
 }
 #[no_mangle]
 pub fn task_switch(regs: &mut Context) {

@@ -31,11 +31,12 @@ pub fn kernel_main() -> ! {
     device::pci::init_pci();
     device::pci::find_virt();
     task::task_add(1, "demo0", demo0, 4);
-    task::task_add(2, "demo1", demo1, 4);
+    task::task_add(2, "demo1", demo1, 10);
     task::task_add(3, "stats", stats, 1);
-    pr_notice!("finished task init!\n");
     enable_irq_s();
-    loop {}
+    loop {
+        unsafe { core::arch::riscv64::wfi() };
+    }
 }
 
 #[optimize(none)]
@@ -61,10 +62,11 @@ fn demo0() -> ! {
 fn stats() -> ! {
     loop {
         pr_warn!(
-            "|{:<10}|{:<10}|{:<10}|{:<10}|{:<10}\n",
+            "|{:<10}|{:<10}|{:<10}|{:<10}|{:<10}|{:<10}\n",
             "name",
             "pid",
             "priority",
+            "slice",
             "total",
             "state"
         );
@@ -72,10 +74,11 @@ fn stats() -> ! {
         {
             task::each_task(|t| {
                 pr_warn!(
-                    "|{:<10}|{:<10}|{:<10}|{:<10}|{:<10}\n",
+                    "|{:<10}|{:<10}|{:<10}|{:<10}|{:<10}|{:<10}\n",
                     t.name,
                     t.id,
                     t.priority,
+                    t.time_slice,
                     t.total_time,
                     t.state
                 )

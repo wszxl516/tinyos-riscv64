@@ -2,7 +2,7 @@
 use crate::arch::trap::trap::Context;
 use crate::config::{CLINT_BASE, ONE_TICK, TASK_SWITCH_INTERVAL_US};
 use crate::pr_debug;
-use crate::task::{set_task_ready_by_pid, task_switch};
+use crate::task::{task_switch, wakeup_by_pid};
 use core::u64;
 use tock_registers::interfaces::{Readable, Writeable};
 use tock_registers::registers::ReadWrite;
@@ -84,7 +84,7 @@ impl Clint {
         for t in &mut self.timers {
             if t.used() && current >= t.us {
                 pr_debug!("fetch_timer: {:#x?}\n", t);
-                set_task_ready_by_pid(t.pid);
+                wakeup_by_pid(t.pid, t.us);
                 *t = SoftTimer::empty();
             }
         }
