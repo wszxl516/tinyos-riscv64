@@ -74,7 +74,7 @@ pub fn getc() -> Option<char> {
         if UART_BUFFER.is_empty() {
             None
         } else {
-            UART_BUFFER.pop()
+            UART_BUFFER.pop_at(0)
         }
     }
 }

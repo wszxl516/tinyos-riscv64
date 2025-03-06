@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 use crate::config::RTC_BASE_ADDR;
+use alloc::string::{String, ToString};
 use core::fmt::{Display, Formatter};
+use time::{error::ComponentRange, OffsetDateTime};
 const NSEC_PER_SEC: u64 = 1_000_000_000;
 use crate::{reg_read_a, reg_write_a};
 
@@ -25,7 +27,9 @@ impl Time {
             nsec: nsecs % NSEC_PER_SEC,
         }
     }
-
+    pub fn to_string(&self) -> Result<String, ComponentRange> {
+        OffsetDateTime::from_unix_timestamp(self.sec as i64).map(|s| s.to_string())
+    }
     pub fn set_time(sec: u64, nsec: u64) {
         let nsec = sec * NSEC_PER_SEC + nsec;
         reg_write_a!((RTC_BASE_ADDR), nsec as u32, u32);

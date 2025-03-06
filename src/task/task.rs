@@ -158,9 +158,10 @@ impl TaskManager {
                     if current.time_slice != 0 {
                         let used_slice = max(current.priority - current.time_slice, 1);
                         current.total_time += used_slice as u64;
-                        current.time_slice -= used_slice;
-                        if current.time_slice == 0 {
+                        if current.time_slice <= used_slice {
                             current.time_slice = 1
+                        } else {
+                            current.time_slice -= used_slice;
                         }
                     } else {
                         current.total_time += current.priority as u64;
@@ -198,7 +199,10 @@ impl TaskManager {
                     max(task.priority / 4, 1),
                 );
                 // When the task is wakeup, increase the time slice
-                task.time_slice += min(sleep_slice, task.priority - task.time_slice);
+                task.time_slice += min(
+                    sleep_slice,
+                    task.priority.overflowing_sub(task.time_slice).0,
+                )
             }
         }
     }

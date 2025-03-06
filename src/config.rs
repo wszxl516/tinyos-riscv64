@@ -4,6 +4,9 @@ pub const BASE_UART: usize = 0x10000000;
 pub const PCI_CONFIG_START: usize = 0x30000000;
 pub const PCI_CONFIG_SIZE: usize = 0x10000000;
 pub const PCI_MEM_START: usize = 0x400000000;
+pub const SYSCON_BASE: usize = 0x100000;
+pub const SYSCON_SIZE: usize = 0x1000;
+
 pub const LOGO_STR: &str = r#"
   _______             __ __                     __
  /_  __(_)___  __  __/ //_/__  _________  ___  / /

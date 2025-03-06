@@ -12,6 +12,7 @@ linked_list_allocator = "0.10.5"
 fdt = "0.1.5"
 spin = {version = "0.9.8", default-features = false, features = ["mutex", "spin_mutex", "rwlock"]}
 paste = "1.0.14"
+time = { version = "0.3", default-features = false, features = ["alloc"] }
 
 [features]
 default = []

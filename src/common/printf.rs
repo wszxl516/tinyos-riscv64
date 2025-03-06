@@ -15,12 +15,6 @@ impl_numeric_enum! {
 }
 
 #[macro_export]
-macro_rules! get_keys {
-    () => {
-        $crate::device::console::gets()
-    };
-}
-#[macro_export]
 macro_rules! print {
     () => {};
     ($fmt: literal $(, $($arg: tt)+)?) => {
@@ -52,7 +46,7 @@ macro_rules! pr_debug {
     ($fmt: literal $(, $($arg: tt)+)?) =>{
         #[cfg(feature = "debug")]
         $crate::pr_color!($fmt,
-            $crate::common::printf::Color::Blue.value()
+            $crate::common::printf::Color::Blue.into_value()
             $(, $($arg)+)?
             )
     };

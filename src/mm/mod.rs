@@ -52,6 +52,10 @@ pub fn init_heap() {
         ALLOCATOR.lock().init(heap_start, mem_size);
     }
 }
+pub fn heap_status() -> (usize, usize, usize) {
+    let h = ALLOCATOR.lock();
+    (h.size(), h.used(), h.free())
+}
 
 pub fn map(va: VirtAddr, pa: PhyAddr, size: usize, flags: PTEFlags, name: &str) {
     pr_notice!("{:-^50} \r\n", "");
@@ -80,11 +84,15 @@ pub fn enable_mmu(root: PhyAddr) {
 pub fn setup_mmu() {
     pr_notice!("{:-^50} \r\n", "");
     pr_notice!("{: ^50} \r\n", "Memory Map");
-    //uart
+    //syscon
+    let va = VirtAddr::new(crate::config::SYSCON_BASE);
+    let pa = PhyAddr::new(crate::config::SYSCON_BASE);
+    map(va, pa, crate::config::SYSCON_SIZE, PTEFlags::RW, "syscon");
+    //pci
     let va = VirtAddr::new(crate::config::PCI_CONFIG_START);
     let pa = PhyAddr::new(crate::config::PCI_CONFIG_START);
     map(va, pa, PAGE_SIZE * 32, PTEFlags::RW, "pci config");
-    //uart
+    //pci
     let va = VirtAddr::new(crate::config::PCI_MEM_START);
     let pa = PhyAddr::new(crate::config::PCI_MEM_START);
     map(va, pa, PAGE_SIZE * 16, PTEFlags::RW, "pci memory");
