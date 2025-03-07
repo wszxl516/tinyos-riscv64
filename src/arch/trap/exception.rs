@@ -31,7 +31,7 @@ impl_numeric_enum! {
 }
 
 fn dump_stack(regs: &Regs) {
-    pr_err!("\n");
+    pr_err!("{:#x?}\n", regs.context.addr());
     pr_err!("call stack: \n\t#1: {:#x} ", regs.epc);
     match find_symbol(regs.epc) {
         Some(sym) => pr_err!("({}+{})\n", sym.name, regs.epc - sym.addr),
@@ -56,7 +56,14 @@ fn dump_stack(regs: &Regs) {
         pr_err!("{:#04x} ", code);
     }
     pr_err!("\n");
-    pr_err!("{}", regs.context);
+    let field_names = regs.context.field_names();
+    let values = regs.context.field_values();    
+    for index in 0..values.len() {
+        pr_err!("{: <3} = {:#018x} ", field_names[index], values[index]);
+        if (index + 1) % 3 == 0 {
+            pr_err!("\n");
+        }
+    }
     pr_err!("\n");
     pr_err!("\n");
 }

@@ -40,7 +40,7 @@ SECTIONS {
 	}
 	.symbols : ALIGN(4k){
         PROVIDE(symbols_start = .);
-        . += 300k;
+        . += 64k;
         PROVIDE(symbols_end = .);
     }
 	PROVIDE(test_symbol = .);

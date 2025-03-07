@@ -37,21 +37,24 @@ all: cargo_build
 cargo_build:
 	cargo build
 
+# Run QEMU
+run: $(OUT_DIR)/$(TARGET).bin hd.img
+	@$(QEMU) $(QEMU_ARGS_RUN)
+
 # Build and generate binary file
 $(OUT_DIR)/$(TARGET).bin: all
-	@$(call generate_symbols, $(OUT_DIR)/$(TARGET), $(OUT_DIR)/symbol_section , 262144) > symbols.log
+	@$(call generate_symbols, $(OUT_DIR)/$(TARGET), $(OUT_DIR)/symbol_section , 65536) > symbols.log
 	@rust-objcopy --update-section .symbols=$(OUT_DIR)/symbol_section --set-section-flags .symbols=data,contents,alloc,load $(OUT_DIR)/$(TARGET)
 	@rust-objcopy --binary-architecture=riscv64 --strip-all -O binary $(OUT_DIR)/$(TARGET) $(OUT_DIR)/$(TARGET).bin
 
-# Run QEMU
-run: $(OUT_DIR)/$(TARGET).bin make_fs
-	@$(QEMU) $(QEMU_ARGS_RUN)
+hd.img:
+	@test -f hd.img || $(MAKE) make_fs
 
 # Make the file system image
 make_fs:
 	@dd if=/dev/urandom of=hd.img bs=1M count=64 $(NO_OUTPUT)
 	@mkfs.fat -F 32 hd.img $(NO_OUTPUT)
-hd.img: make_fs
+	
 # Debugging with QEMU and rust-lldb
 debug: $(OUT_DIR)/$(TARGET).bin hd.img
 	/usr/bin/xfce4-terminal -e '$(QEMU) $(QEMU_ARGS_RUN) -s -S' &

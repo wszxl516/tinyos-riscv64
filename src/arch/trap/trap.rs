@@ -2,7 +2,7 @@
 
 use super::exception::{exception_handler, Exception};
 use super::interrupt::{interrupt_handler, Interrupt};
-use crate::{display_with_field_name, get_bits, impl_numeric_enum, reg_read_p, reg_write_p};
+use crate::{impl_field_name_and_value, get_bits, impl_numeric_enum, reg_read_p, reg_write_p};
 use core::arch::global_asm;
 
 global_asm!(include_str!("macros.S"), include_str!("trap.S"));
@@ -31,7 +31,6 @@ pub fn disable_irq_s() {
     reg_write_p!(sie, 0);
 }
 
-pub type Reg = usize;
 // Register 	ABI Name 	Description 	                Saver
 // x0 	        zero 	    Hard-wired zero 	            -
 // x1 	        ra 	        Return address 	                Caller
@@ -47,43 +46,43 @@ pub type Reg = usize;
 // x18-27 	    s2-11 	    Saved registers 	            Callee
 // x28-31 	    t3-6 	    Temporaries 	                Caller
 
-display_with_field_name! {
-    "{: <3} = {:#018x}",
+impl_field_name_and_value! {
+    usize,
     #[repr(C, align(8))]
     #[derive(Debug, Clone, Default)]
     pub struct Context {
-        pub ra: Reg,
-        pub sp: Reg,
-        pub gp: Reg,
-        pub tp: Reg,
-        pub t0: Reg,
-        pub t1: Reg,
-        pub t2: Reg,
-        pub s0: Reg,
-        pub s1: Reg,
-        pub a0: Reg,
-        pub a1: Reg,
-        pub a2: Reg,
-        pub a3: Reg,
-        pub a4: Reg,
-        pub a5: Reg,
-        pub a6: Reg,
-        pub a7: Reg,
-        pub s2: Reg,
-        pub s3: Reg,
-        pub s4: Reg,
-        pub s5: Reg,
-        pub s6: Reg,
-        pub s7: Reg,
-        pub s8: Reg,
-        pub s9: Reg,
-        pub s10: Reg,
-        pub s11: Reg,
-        pub t3: Reg,
-        pub t4: Reg,
-        pub t5: Reg,
-        pub t6: Reg,
-        pub pc: Reg,
+        pub ra,
+        pub sp,
+        pub gp,
+        pub tp,
+        pub t0,
+        pub t1,
+        pub t2,
+        pub s0,
+        pub s1,
+        pub a0,
+        pub a1,
+        pub a2,
+        pub a3,
+        pub a4,
+        pub a5,
+        pub a6,
+        pub a7,
+        pub s2,
+        pub s3,
+        pub s4,
+        pub s5,
+        pub s6,
+        pub s7,
+        pub s8,
+        pub s9,
+        pub s10,
+        pub s11,
+        pub t3,
+        pub t4,
+        pub t5,
+        pub t6,
+        pub pc,
     }
 }
 
@@ -132,11 +131,11 @@ impl Context {
         self.mut_array().copy_from_slice(data.array());
     }
     #[inline]
-    pub fn mut_array(&mut self) -> &mut [Reg; 32] {
+    pub fn mut_array(&mut self) -> &mut [usize; 32] {
         unsafe { core::mem::transmute(self) }
     }
     #[inline]
-    pub fn array(&self) -> &[Reg; 32] {
+    pub fn array(&self) -> &[usize; 32] {
         unsafe { core::mem::transmute(self) }
     }
 }

@@ -95,7 +95,11 @@ pub fn shell() -> ! {
             }
             "poweroff" => poweroff(),
             "reboot" => reboot(),
-            _ => pr_warn!("usage: \n\tps date free poweroff reboot\n"),
+            "raise" => {
+                pr_warn!("raise a exception!\n");
+                unsafe { core::arch::asm!("ld t0, 0({tmp})", tmp = in(reg) usize::MAX) }
+            }
+            _ => pr_warn!("usage: \n\tps date free poweroff reboot raise\n"),
         }
         line_buffer.clear();
         sleep_ms(100);
